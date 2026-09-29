@@ -1,12 +1,27 @@
 import { Grid, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Suspense, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 
 // Center of the spherical head shell, fitted from the Rhino-exported CAD.
 // Both pan and tilt axes pass through this point.
 const HEAD_SPHERE_CENTER = new THREE.Vector3(0, 0.09616257, 0)
+
+// The Rhino glass is a circular plate tilted 15 degrees from the YZ plane.
+// These values are fitted directly from nova-glass.glb.
+const SCREEN_CENTER = new THREE.Vector3(0.01278194, 0.09985127, 0.00020264)
+const SCREEN_NORMAL = new THREE.Vector3(
+  0.965912353,
+  0.258869325,
+  0,
+).normalize()
+const SCREEN_SURFACE = SCREEN_CENTER.clone().addScaledVector(SCREEN_NORMAL, 0.00125)
+const SCREEN_RADIUS = 0.0408
+const SCREEN_QUATERNION = new THREE.Quaternion().setFromUnitVectors(
+  new THREE.Vector3(0, 0, 1),
+  SCREEN_NORMAL,
+)
 
 function mergeRhinoScene(scene, material) {
   scene.updateMatrixWorld(true)
@@ -48,7 +63,70 @@ function mergeRhinoScene(scene, material) {
   return mesh
 }
 
-function NovaModel({ state }) {
+function ScreenDisplay({ animation }) {
+  const media = useMemo(() => {
+    const video = document.createElement('video')
+    video.src = `/animations/${animation}.mov`
+    video.muted = true
+    video.loop = true
+    video.autoplay = true
+    video.playsInline = true
+    video.preload = 'auto'
+    video.crossOrigin = 'anonymous'
+    video.setAttribute('playsinline', '')
+    video.setAttribute('webkit-playsinline', '')
+
+    const texture = new THREE.VideoTexture(video)
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.minFilter = THREE.LinearFilter
+    texture.magFilter = THREE.LinearFilter
+    texture.generateMipmaps = false
+
+    return { video, texture }
+  }, [animation])
+
+  useEffect(() => {
+    const { video, texture } = media
+
+    const start = () => {
+      video.currentTime = 0
+      video.play().catch(() => {
+        // Muted autoplay normally succeeds. If a browser blocks it, the next
+        // user interaction with the controls will allow playback.
+      })
+    }
+
+    video.addEventListener('canplay', start, { once: true })
+    video.load()
+    start()
+
+    return () => {
+      video.pause()
+      video.removeEventListener('canplay', start)
+      video.removeAttribute('src')
+      video.load()
+      texture.dispose()
+    }
+  }, [media])
+
+  return (
+    <mesh
+      position={SCREEN_SURFACE.toArray()}
+      quaternion={SCREEN_QUATERNION.toArray()}
+      renderOrder={20}
+    >
+      <circleGeometry args={[SCREEN_RADIUS, 96]} />
+      <meshBasicMaterial
+        map={media.texture}
+        toneMapped={false}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </mesh>
+  )
+}
+
+function NovaModel({ state, screenAnimation }) {
   const baseGltf = useGLTF('/models/nova-base.glb')
   const bodyGltf = useGLTF('/models/nova-body.glb')
   const headGltf = useGLTF('/models/nova-head.glb')
@@ -133,12 +211,6 @@ function NovaModel({ state }) {
       <primitive object={base} />
       <primitive object={body} />
 
-      {/*
-        Move the rotation origin to the center of the spherical head, apply pan
-        around Y and tilt around Z, then move the CAD back into world space.
-        This makes the shell rotate around its own sphere instead of swinging
-        around the neck/base point.
-      */}
       <group ref={pan} position={HEAD_SPHERE_CENTER.toArray()}>
         <group ref={tilt}>
           <group
@@ -146,6 +218,7 @@ function NovaModel({ state }) {
           >
             <primitive object={head} />
             <primitive object={glass} />
+            <ScreenDisplay animation={screenAnimation} />
           </group>
         </group>
       </group>
@@ -162,7 +235,7 @@ function LoadingRobot() {
   )
 }
 
-export default function RobotScene({ state }) {
+export default function RobotScene({ state, screenAnimation = 'blinking' }) {
   return (
     <Canvas
       shadows
@@ -195,7 +268,7 @@ export default function RobotScene({ state }) {
       <directionalLight position={[-0.22, 0.20, -0.18]} intensity={0.85} />
 
       <Suspense fallback={<LoadingRobot />}>
-        <NovaModel state={state} />
+        <NovaModel state={state} screenAnimation={screenAnimation} />
       </Suspense>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.0015, 0]} receiveShadow>

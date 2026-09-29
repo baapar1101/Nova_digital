@@ -1,8 +1,20 @@
+import { useState } from 'react'
 import RobotScene from './components/RobotScene.jsx'
 import { useRobotSocket } from './hooks/useRobotSocket.js'
 
 const RAD_TO_DEG = 180 / Math.PI
 const DEG_TO_RAD = Math.PI / 180
+
+const SCREEN_ANIMATIONS = [
+  { id: 'blinking', label: 'Blink' },
+  { id: 'winking', label: 'Wink' },
+  { id: 'giggling', label: 'Giggle' },
+  { id: 'drinking', label: 'Drink' },
+  { id: 'afraiding', label: 'Afraid' },
+  { id: 'tireding', label: 'Tired' },
+  { id: 'loving', label: 'Love' },
+  { id: 'heart-eying', label: 'Heart eyes' },
+]
 
 function format(value, digits = 1) {
   return Number.isFinite(value) ? value.toFixed(digits) : '—'
@@ -71,6 +83,7 @@ function JointSlider({
 
 export default function App() {
   const { connected, transport, state, lastError, send } = useRobotSocket()
+  const [screenAnimation, setScreenAnimation] = useState('blinking')
 
   const pan = state.joints.head_pan ?? 0
   const tilt = state.joints.head_tilt ?? 0
@@ -115,10 +128,10 @@ export default function App() {
 
       <section className="workspace">
         <div className="viewport">
-          <RobotScene state={state} />
+          <RobotScene state={state} screenAnimation={screenAnimation} />
 
           <div className="viewport-hint">
-            Drag to orbit · Scroll to zoom · Pan and tilt follow simulated servo dynamics
+            Drag to orbit · Scroll to zoom · Select a face animation from the panel
           </div>
 
           <div className="pose-badge">
@@ -158,6 +171,28 @@ export default function App() {
               value={format(state.battery, 1)}
               unit="%"
             />
+          </section>
+
+          <section className="panel-section">
+            <div className="section-title">
+              <span>Screen animation</span>
+              <small>{screenAnimation}</small>
+            </div>
+
+            <div className="animation-grid">
+              {SCREEN_ANIMATIONS.map((animation) => (
+                <button
+                  key={animation.id}
+                  className={
+                    'animation-button ' +
+                    (screenAnimation === animation.id ? 'active' : '')
+                  }
+                  onClick={() => setScreenAnimation(animation.id)}
+                >
+                  {animation.label}
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className="panel-section">
@@ -223,9 +258,8 @@ export default function App() {
           </section>
 
           <p className="engineering-note">
-            Mechanical range: pan 180° total (−90° to +90°), tilt 0° to 45°.
-            Public builds run a browser demo when no WebSocket backend is configured.
-            Set VITE_ROBOT_WS_URL to a public WSS endpoint to switch to Python.
+            Face videos are rendered directly on Nova's circular front display
+            and move with the spherical head. Default expression is blinking.
           </p>
 
           {lastError && <p className="error-message">{lastError}</p>}

@@ -1,6 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import RobotScene from './components/RobotScene.jsx'
+import { useMovementPlayer } from './hooks/useMovementPlayer.js'
 import { useRobotSocket } from './hooks/useRobotSocket.js'
+import {
+  MOVEMENT_CATEGORIES,
+  MOVEMENTS,
+  getMovementById,
+} from './movements.js'
 
 const RAD_TO_DEG = 180 / Math.PI
 const DEG_TO_RAD = Math.PI / 180
@@ -44,6 +50,7 @@ function JointSlider({
   minDegrees,
   maxDegrees,
   send,
+  beforeChange,
 }) {
   const actualDegrees = deg(actual)
   const targetDegrees = deg(target)
@@ -65,6 +72,7 @@ function JointSlider({
         step="0.5"
         value={targetDegrees}
         onChange={(event) => {
+          beforeChange?.()
           send({
             type: 'joint_target',
             joint: name,
@@ -83,7 +91,22 @@ function JointSlider({
 
 export default function App() {
   const { connected, transport, state, lastError, send } = useRobotSocket()
+
   const [screenAnimation, setScreenAnimation] = useState('blinking')
+  const [movementCategory, setMovementCategory] = useState('social')
+  const [selectedMovementId, setSelectedMovementId] = useState('hello')
+  const [playMode, setPlayMode] = useState('once')
+
+  const movementPlayer = useMovementPlayer({
+    send,
+    onFaceChange: setScreenAnimation,
+  })
+
+  const selectedMovement = getMovementById(selectedMovementId)
+  const categoryMovements = useMemo(
+    () => MOVEMENTS.filter((movement) => movement.category === movementCategory),
+    [movementCategory],
+  )
 
   const pan = state.joints.head_pan ?? 0
   const tilt = state.joints.head_tilt ?? 0
@@ -93,6 +116,7 @@ export default function App() {
   const tiltVelocity = state.joint_velocity.head_tilt ?? 0
 
   const setJointDegrees = (joint, degrees) => {
+    movementPlayer.cancel()
     send({
       type: 'joint_target',
       joint,
@@ -131,7 +155,7 @@ export default function App() {
           <RobotScene state={state} screenAnimation={screenAnimation} />
 
           <div className="viewport-hint">
-            Drag to orbit · Scroll to zoom · Select a face animation from the panel
+            Drag to orbit · Scroll to zoom · Use Movement library for choreographed motion
           </div>
 
           <div className="pose-badge">
@@ -145,32 +169,112 @@ export default function App() {
               <strong>{format(deg(tilt))}°</strong>
             </div>
           </div>
+
+          {movementPlayer.playing && (
+            <div className="movement-live-badge">
+              <span>PLAYING</span>
+              <strong>{selectedMovement.label}</strong>
+            </div>
+          )}
         </div>
 
         <aside className="panel">
-          <section className="panel-section">
+          <section className="panel-section movement-section">
             <div className="section-title">
-              <span>Head telemetry</span>
-              <small>#{state.seq}</small>
+              <span>Movement library</span>
+              <small>{MOVEMENTS.length} motions</small>
             </div>
 
-            <TelemetryRow label="Pan" value={format(deg(pan))} unit="°" />
-            <TelemetryRow label="Tilt" value={format(deg(tilt))} unit="°" />
-            <TelemetryRow
-              label="Pan rate"
-              value={format(deg(panVelocity))}
-              unit="°/s"
-            />
-            <TelemetryRow
-              label="Tilt rate"
-              value={format(deg(tiltVelocity))}
-              unit="°/s"
-            />
-            <TelemetryRow
-              label="Battery model"
-              value={format(state.battery, 1)}
-              unit="%"
-            />
+            <div className="category-tabs">
+              {MOVEMENT_CATEGORIES.map((category) => (
+                <button
+                  key={category.id}
+                  className={movementCategory === category.id ? 'active' : ''}
+                  onClick={() => {
+                    movementPlayer.cancel()
+                    setMovementCategory(category.id)
+                    const first = MOVEMENTS.find(
+                      (movement) => movement.category === category.id,
+                    )
+                    if (first) setSelectedMovementId(first.id)
+                  }}
+                >
+                  {category.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="movement-grid">
+              {categoryMovements.map((movement) => (
+                <button
+                  key={movement.id}
+                  className={
+                    'movement-card ' +
+                    (selectedMovementId === movement.id ? 'active' : '')
+                  }
+                  onClick={() => {
+                    movementPlayer.cancel()
+                    setSelectedMovementId(movement.id)
+                  }}
+                >
+                  <strong>{movement.label}</strong>
+                  <span>{movement.description}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="movement-player">
+              <div className="movement-selected">
+                <div>
+                  <small>SELECTED</small>
+                  <strong>{selectedMovement.label}</strong>
+                </div>
+                <span>{(selectedMovement.duration / 1000).toFixed(1)}s</span>
+              </div>
+
+              <div className="play-mode-row">
+                <span>Playback</span>
+                <div className="segmented-control">
+                  <button
+                    className={playMode === 'once' ? 'active' : ''}
+                    onClick={() => setPlayMode('once')}
+                  >
+                    Once
+                  </button>
+                  <button
+                    className={playMode === 'loop' ? 'active' : ''}
+                    onClick={() => setPlayMode('loop')}
+                  >
+                    Loop
+                  </button>
+                </div>
+              </div>
+
+              <div className="movement-actions">
+                <button
+                  className="play-button"
+                  onClick={() => movementPlayer.play(selectedMovement, playMode)}
+                >
+                  {movementPlayer.playing ? 'Restart movement' : 'Play movement'}
+                </button>
+                <button
+                  className="stop-button"
+                  disabled={!movementPlayer.playing}
+                  onClick={movementPlayer.stop}
+                >
+                  Stop
+                </button>
+              </div>
+
+              <div className="movement-progress" aria-hidden="true">
+                <span
+                  style={{
+                    width: `${Math.round(movementPlayer.progress * 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="playback-note">Once is selected by default.</p>
+            </div>
           </section>
 
           <section className="panel-section">
@@ -209,6 +313,7 @@ export default function App() {
               minDegrees={-90}
               maxDegrees={90}
               send={send}
+              beforeChange={movementPlayer.cancel}
             />
 
             <JointSlider
@@ -219,12 +324,13 @@ export default function App() {
               minDegrees={0}
               maxDegrees={45}
               send={send}
+              beforeChange={movementPlayer.cancel}
             />
           </section>
 
           <section className="panel-section">
             <div className="section-title">
-              <span>Presets</span>
+              <span>Position presets</span>
               <small>degrees</small>
             </div>
 
@@ -232,7 +338,14 @@ export default function App() {
               <button onClick={() => setJointDegrees('head_pan', -90)}>
                 Left −90°
               </button>
-              <button onClick={() => send({ type: 'home' })}>Center</button>
+              <button
+                onClick={() => {
+                  movementPlayer.cancel()
+                  send({ type: 'home' })
+                }}
+              >
+                Center
+              </button>
               <button onClick={() => setJointDegrees('head_pan', 90)}>
                 Right +90°
               </button>
@@ -242,24 +355,51 @@ export default function App() {
             </div>
           </section>
 
+          <section className="panel-section">
+            <div className="section-title">
+              <span>Head telemetry</span>
+              <small>#{state.seq}</small>
+            </div>
+
+            <TelemetryRow label="Pan" value={format(deg(pan))} unit="°" />
+            <TelemetryRow label="Tilt" value={format(deg(tilt))} unit="°" />
+            <TelemetryRow
+              label="Pan rate"
+              value={format(deg(panVelocity))}
+              unit="°/s"
+            />
+            <TelemetryRow
+              label="Tilt rate"
+              value={format(deg(tiltVelocity))}
+              unit="°/s"
+            />
+          </section>
+
           <section className="panel-section controls">
             <button
               className="secondary-button"
-              onClick={() => send({ type: 'home' })}
+              onClick={() => {
+                movementPlayer.cancel()
+                send({ type: 'home' })
+              }}
             >
               Return to home
             </button>
             <button
               className="estop-button"
-              onClick={() => send({ type: 'estop' })}
+              onClick={() => {
+                movementPlayer.cancel()
+                send({ type: 'estop' })
+              }}
             >
               STOP MOTION
             </button>
           </section>
 
           <p className="engineering-note">
-            Face videos are rendered directly on Nova's circular front display
-            and move with the spherical head. Default expression is blinking.
+            Choreographies stay inside Nova's configured pan and tilt limits.
+            When Python is connected, the same movement player streams joint
+            targets over the existing WebSocket interface.
           </p>
 
           {lastError && <p className="error-message">{lastError}</p>}

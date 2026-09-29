@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useRef } from 'react'
 import RobotScene from './components/RobotScene.jsx'
 import { useRobotSocket } from './hooks/useRobotSocket.js'
 
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
+const RAD_TO_DEG = 180 / Math.PI
+const DEG_TO_RAD = Math.PI / 180
 
-function format(value, digits = 2) {
+function format(value, digits = 1) {
   return Number.isFinite(value) ? value.toFixed(digits) : '—'
+}
+
+function deg(radians) {
+  return radians * RAD_TO_DEG
 }
 
 function TelemetryRow({ label, value, unit = '' }) {
@@ -20,102 +24,68 @@ function TelemetryRow({ label, value, unit = '' }) {
   )
 }
 
-function JointSlider({ name, label, value, min, max, send }) {
-  const degrees = value * 180 / Math.PI
+function JointSlider({
+  name,
+  label,
+  actual,
+  target,
+  minDegrees,
+  maxDegrees,
+  send,
+}) {
+  const actualDegrees = deg(actual)
+  const targetDegrees = deg(target)
 
   return (
     <label className="joint-control">
-      <div>
+      <div className="joint-heading">
         <span>{label}</span>
-        <strong>{format(degrees, 1)}°</strong>
+        <strong>
+          {format(actualDegrees)}°
+          <small> target {format(targetDegrees)}°</small>
+        </strong>
       </div>
+
       <input
         type="range"
-        min={min}
-        max={max}
-        step="0.01"
-        value={value}
+        min={minDegrees}
+        max={maxDegrees}
+        step="0.5"
+        value={targetDegrees}
         onChange={(event) => {
           send({
             type: 'joint_target',
             joint: name,
-            target: Number(event.target.value),
+            target: Number(event.target.value) * DEG_TO_RAD,
           })
         }}
       />
+
+      <div className="range-labels">
+        <span>{minDegrees}°</span>
+        <span>{maxDegrees}°</span>
+      </div>
     </label>
   )
 }
 
 export default function App() {
   const { connected, state, lastError, send } = useRobotSocket()
-  const pressed = useRef(new Set())
 
-  const sendDriveFromKeys = useCallback(() => {
-    const keys = pressed.current
+  const pan = state.joints.head_pan ?? 0
+  const tilt = state.joints.head_tilt ?? 0
+  const panTarget = state.joint_targets.head_pan ?? pan
+  const tiltTarget = state.joint_targets.head_tilt ?? tilt
+  const panVelocity = state.joint_velocity.head_pan ?? 0
+  const tiltVelocity = state.joint_velocity.head_tilt ?? 0
 
-    let throttle = 0
-    let steering = 0
-
-    if (keys.has('w') || keys.has('arrowup')) throttle += 1
-    if (keys.has('s') || keys.has('arrowdown')) throttle -= 1
-    if (keys.has('a') || keys.has('arrowleft')) steering -= 1
-    if (keys.has('d') || keys.has('arrowright')) steering += 1
-
-    const scale = 0.78
-    const left = clamp((throttle + steering) * scale, -1, 1)
-    const right = clamp((throttle - steering) * scale, -1, 1)
-
-    send({ type: 'drive', left, right })
-  }, [send])
-
-  useEffect(() => {
-    const relevant = new Set([
-      'w', 'a', 's', 'd',
-      'arrowup', 'arrowdown', 'arrowleft', 'arrowright',
-      ' ',
-    ])
-
-    const onKeyDown = (event) => {
-      const key = event.key.toLowerCase()
-      if (!relevant.has(key)) return
-
-      event.preventDefault()
-
-      if (key === ' ') {
-        pressed.current.clear()
-        send({ type: 'estop' })
-        return
-      }
-
-      pressed.current.add(key)
-      sendDriveFromKeys()
-    }
-
-    const onKeyUp = (event) => {
-      const key = event.key.toLowerCase()
-      if (!relevant.has(key)) return
-
-      event.preventDefault()
-      pressed.current.delete(key)
-      sendDriveFromKeys()
-    }
-
-    const onBlur = () => {
-      pressed.current.clear()
-      send({ type: 'drive', left: 0, right: 0 })
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('blur', onBlur)
-
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('blur', onBlur)
-    }
-  }, [send, sendDriveFromKeys])
+  const setJointDegrees = (joint, degrees) => {
+    send({
+      type: 'joint_target',
+      joint,
+      target: degrees * DEG_TO_RAD,
+    })
+  }
 
   return (
     <main className="app-shell">
@@ -127,7 +97,7 @@ export default function App() {
 
         <div className={'connection ' + (connected ? 'online' : 'offline')}>
           <span />
-          {connected ? 'SIM ONLINE' : 'DISCONNECTED'}
+          {connected ? 'PYTHON ONLINE' : 'DISCONNECTED'}
         </div>
       </header>
 
@@ -136,46 +106,43 @@ export default function App() {
           <RobotScene state={state} />
 
           <div className="viewport-hint">
-            Drag to orbit · Scroll to zoom · W/A/S/D to drive · Space to stop
+            Drag to orbit · Scroll to zoom · Head motion is driven by Python
           </div>
 
-          <div className="speed-badge">
-            <span>GROUND SPEED</span>
-            <strong>{format(state.velocity.linear)} m/s</strong>
+          <div className="pose-badge">
+            <div>
+              <span>PAN</span>
+              <strong>{format(deg(pan))}°</strong>
+            </div>
+            <i />
+            <div>
+              <span>TILT</span>
+              <strong>{format(deg(tilt))}°</strong>
+            </div>
           </div>
         </div>
 
         <aside className="panel">
           <section className="panel-section">
             <div className="section-title">
-              <span>Telemetry</span>
+              <span>Head telemetry</span>
               <small>#{state.seq}</small>
             </div>
 
-            <TelemetryRow label="X" value={format(state.pose.x)} unit="m" />
-            <TelemetryRow label="Z" value={format(state.pose.z)} unit="m" />
+            <TelemetryRow label="Pan" value={format(deg(pan))} unit="°" />
+            <TelemetryRow label="Tilt" value={format(deg(tilt))} unit="°" />
             <TelemetryRow
-              label="Heading"
-              value={format(state.pose.yaw * 180 / Math.PI, 1)}
-              unit="°"
+              label="Pan rate"
+              value={format(deg(panVelocity))}
+              unit="°/s"
             />
             <TelemetryRow
-              label="Angular"
-              value={format(state.velocity.angular)}
-              unit="rad/s"
+              label="Tilt rate"
+              value={format(deg(tiltVelocity))}
+              unit="°/s"
             />
             <TelemetryRow
-              label="Left track"
-              value={format(state.tracks.left)}
-              unit="m/s"
-            />
-            <TelemetryRow
-              label="Right track"
-              value={format(state.tracks.right)}
-              unit="m/s"
-            />
-            <TelemetryRow
-              label="Battery"
+              label="Battery model"
               value={format(state.battery, 1)}
               unit="%"
             />
@@ -183,61 +150,71 @@ export default function App() {
 
           <section className="panel-section">
             <div className="section-title">
-              <span>Arm joints</span>
-              <small>rad targets</small>
+              <span>Head control</span>
+              <small>servo targets</small>
             </div>
 
             <JointSlider
-              name="arm_base"
-              label="Base"
-              value={state.joints.arm_base}
-              min={-3.14}
-              max={3.14}
+              name="head_pan"
+              label="Pan"
+              actual={pan}
+              target={panTarget}
+              minDegrees={-90}
+              maxDegrees={90}
               send={send}
             />
+
             <JointSlider
-              name="shoulder"
-              label="Shoulder"
-              value={state.joints.shoulder}
-              min={-0.5}
-              max={1.45}
+              name="head_tilt"
+              label="Tilt"
+              actual={tilt}
+              target={tiltTarget}
+              minDegrees={0}
+              maxDegrees={45}
               send={send}
             />
-            <JointSlider
-              name="elbow"
-              label="Elbow"
-              value={state.joints.elbow}
-              min={-2.2}
-              max={0.2}
-              send={send}
-            />
-            <JointSlider
-              name="wrist"
-              label="Wrist"
-              value={state.joints.wrist}
-              min={-1.6}
-              max={1.6}
-              send={send}
-            />
+          </section>
+
+          <section className="panel-section">
+            <div className="section-title">
+              <span>Presets</span>
+              <small>degrees</small>
+            </div>
+
+            <div className="preset-grid">
+              <button onClick={() => setJointDegrees('head_pan', -90)}>
+                Left −90°
+              </button>
+              <button onClick={() => send({ type: 'home' })}>Center</button>
+              <button onClick={() => setJointDegrees('head_pan', 90)}>
+                Right +90°
+              </button>
+              <button onClick={() => setJointDegrees('head_tilt', 45)}>
+                Tilt 45°
+              </button>
+            </div>
           </section>
 
           <section className="panel-section controls">
             <button
               className="secondary-button"
-              onClick={() => send({ type: 'reset_pose' })}
+              onClick={() => send({ type: 'home' })}
             >
-              Reset pose
+              Return to home
             </button>
             <button
               className="estop-button"
-              onClick={() => {
-                pressed.current.clear()
-                send({ type: 'estop' })
-              }}
+              onClick={() => send({ type: 'estop' })}
             >
-              EMERGENCY STOP
+              STOP MOTION
             </button>
           </section>
+
+          <p className="engineering-note">
+            Mechanical range: pan 180° total (−90° to +90°), tilt 0° to 45°.
+            The current 3D neck pivot is an initial CAD-based estimate and can
+            be calibrated to the exact bearing center later.
+          </p>
 
           {lastError && <p className="error-message">{lastError}</p>}
         </aside>

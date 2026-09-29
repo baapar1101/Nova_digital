@@ -36,7 +36,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Nova Digital Twin API",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -70,19 +70,7 @@ async def receive_commands(websocket: WebSocket) -> None:
         message = await websocket.receive_json()
         message_type = message.get("type")
 
-        if message_type == "drive":
-            robot.set_drive(
-                float(message.get("left", 0.0)),
-                float(message.get("right", 0.0)),
-            )
-
-        elif message_type == "estop":
-            robot.estop()
-
-        elif message_type == "reset_pose":
-            robot.reset_pose()
-
-        elif message_type == "joint_target":
+        if message_type == "joint_target":
             name = str(message.get("joint", ""))
             target = float(message.get("target", 0.0))
             if not robot.set_joint_target(name, target):
@@ -92,6 +80,12 @@ async def receive_commands(websocket: WebSocket) -> None:
                         "message": "Unknown joint: " + name,
                     }
                 )
+
+        elif message_type == "home":
+            robot.home()
+
+        elif message_type == "estop":
+            robot.estop()
 
         elif message_type == "ping":
             await websocket.send_json({"type": "pong"})
@@ -118,9 +112,8 @@ async def robot_websocket(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     except RuntimeError:
-        # Covers a peer closing between a state update and send_json.
         pass
     finally:
-        robot.set_drive(0.0, 0.0)
+        robot.estop()
         sender.cancel()
         receiver.cancel()

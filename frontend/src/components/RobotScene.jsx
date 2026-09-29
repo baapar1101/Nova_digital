@@ -1,87 +1,125 @@
-import { Grid, OrbitControls } from '@react-three/drei'
+import { Grid, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useRef } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 
-function JointMarker() {
-  return (
-    <mesh rotation={[Math.PI / 2, 0, 0]}>
-      <cylinderGeometry args={[0.09, 0.09, 0.16, 24]} />
-      <meshStandardMaterial color="#dce3ea" metalness={0.5} roughness={0.3} />
-    </mesh>
-  )
+const HEAD_PIVOT = new THREE.Vector3(0, 0.052, 0)
+
+function mergeRhinoScene(scene, material) {
+  scene.updateMatrixWorld(true)
+  const geometries = []
+
+  scene.traverse((child) => {
+    if (!child.isMesh) return
+
+    const source = child.geometry.index
+      ? child.geometry.toNonIndexed()
+      : child.geometry.clone()
+
+    source.applyMatrix4(child.matrixWorld)
+
+    for (const attribute of Object.keys(source.attributes)) {
+      if (attribute !== 'position' && attribute !== 'normal') {
+        source.deleteAttribute(attribute)
+      }
+    }
+
+    if (!source.getAttribute('normal')) {
+      source.computeVertexNormals()
+    }
+
+    geometries.push(source)
+  })
+
+  const geometry = mergeGeometries(geometries, false)
+  if (!geometry) {
+    throw new Error('Could not merge Rhino geometry for Nova')
+  }
+
+  geometry.computeBoundingBox()
+  geometry.computeBoundingSphere()
+
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  return mesh
 }
 
-function ArmSegment({ length, thickness = 0.13 }) {
-  return (
-    <mesh position={[length / 2, 0, 0]} castShadow receiveShadow>
-      <boxGeometry args={[length, thickness, thickness]} />
-      <meshStandardMaterial color="#f3f5f7" metalness={0.18} roughness={0.34} />
-    </mesh>
-  )
-}
+function NovaModel({ state }) {
+  const baseGltf = useGLTF('/models/nova-base.glb')
+  const bodyGltf = useGLTF('/models/nova-body.glb')
+  const headGltf = useGLTF('/models/nova-head.glb')
+  const glassGltf = useGLTF('/models/nova-glass.glb')
 
-function RobotBody({ state }) {
-  const root = useRef()
-  const armBase = useRef()
-  const shoulder = useRef()
-  const elbow = useRef()
-  const wrist = useRef()
+  const materials = useMemo(
+    () => ({
+      body: new THREE.MeshPhysicalMaterial({
+        color: '#f0f2f4',
+        roughness: 0.28,
+        metalness: 0.03,
+        clearcoat: 0.28,
+        clearcoatRoughness: 0.24,
+      }),
+      head: new THREE.MeshPhysicalMaterial({
+        color: '#f4f5f7',
+        roughness: 0.25,
+        metalness: 0.02,
+        clearcoat: 0.32,
+        clearcoatRoughness: 0.22,
+      }),
+      internals: new THREE.MeshStandardMaterial({
+        color: '#69727d',
+        roughness: 0.42,
+        metalness: 0.42,
+      }),
+      glass: new THREE.MeshPhysicalMaterial({
+        color: '#07090c',
+        roughness: 0.09,
+        metalness: 0.08,
+        clearcoat: 1,
+        clearcoatRoughness: 0.06,
+      }),
+    }),
+    [],
+  )
+
+  const base = useMemo(
+    () => mergeRhinoScene(baseGltf.scene, materials.internals),
+    [baseGltf.scene, materials.internals],
+  )
+  const body = useMemo(
+    () => mergeRhinoScene(bodyGltf.scene, materials.body),
+    [bodyGltf.scene, materials.body],
+  )
+  const head = useMemo(
+    () => mergeRhinoScene(headGltf.scene, materials.head),
+    [headGltf.scene, materials.head],
+  )
+  const glass = useMemo(
+    () => mergeRhinoScene(glassGltf.scene, materials.glass),
+    [glassGltf.scene, materials.glass],
+  )
+
+  const pan = useRef()
+  const tilt = useRef()
 
   useFrame((_, delta) => {
-    if (!root.current) return
+    const lambda = 18
 
-    const lambda = 14
-    root.current.position.x = THREE.MathUtils.damp(
-      root.current.position.x,
-      state.pose.x,
-      lambda,
-      delta,
-    )
-    root.current.position.z = THREE.MathUtils.damp(
-      root.current.position.z,
-      state.pose.z,
-      lambda,
-      delta,
-    )
-    root.current.rotation.y = THREE.MathUtils.damp(
-      root.current.rotation.y,
-      -state.pose.yaw,
-      lambda,
-      delta,
-    )
-
-    if (armBase.current) {
-      armBase.current.rotation.y = THREE.MathUtils.damp(
-        armBase.current.rotation.y,
-        -state.joints.arm_base,
+    if (pan.current) {
+      pan.current.rotation.y = THREE.MathUtils.damp(
+        pan.current.rotation.y,
+        state.joints.head_pan,
         lambda,
         delta,
       )
     }
 
-    if (shoulder.current) {
-      shoulder.current.rotation.z = THREE.MathUtils.damp(
-        shoulder.current.rotation.z,
-        state.joints.shoulder,
-        lambda,
-        delta,
-      )
-    }
-
-    if (elbow.current) {
-      elbow.current.rotation.z = THREE.MathUtils.damp(
-        elbow.current.rotation.z,
-        state.joints.elbow,
-        lambda,
-        delta,
-      )
-    }
-
-    if (wrist.current) {
-      wrist.current.rotation.z = THREE.MathUtils.damp(
-        wrist.current.rotation.z,
-        state.joints.wrist,
+    if (tilt.current) {
+      tilt.current.rotation.z = THREE.MathUtils.damp(
+        tilt.current.rotation.z,
+        state.joints.head_tilt,
         lambda,
         delta,
       )
@@ -89,52 +127,15 @@ function RobotBody({ state }) {
   })
 
   return (
-    <group ref={root} position={[0, 0.25, 0]}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[1.45, 0.36, 0.86]} />
-        <meshStandardMaterial color="#eef1f4" metalness={0.12} roughness={0.32} />
-      </mesh>
+    <group>
+      <primitive object={base} />
+      <primitive object={body} />
 
-      <mesh position={[-0.18, 0.31, 0]} castShadow>
-        <boxGeometry args={[0.72, 0.28, 0.66]} />
-        <meshStandardMaterial color="#d9dee3" metalness={0.18} roughness={0.36} />
-      </mesh>
-
-      <mesh position={[0, -0.13, 0.54]} castShadow receiveShadow>
-        <boxGeometry args={[1.56, 0.28, 0.20]} />
-        <meshStandardMaterial color="#252a31" metalness={0.08} roughness={0.78} />
-      </mesh>
-
-      <mesh position={[0, -0.13, -0.54]} castShadow receiveShadow>
-        <boxGeometry args={[1.56, 0.28, 0.20]} />
-        <meshStandardMaterial color="#252a31" metalness={0.08} roughness={0.78} />
-      </mesh>
-
-      <group ref={armBase} position={[0.22, 0.46, 0]}>
-        <mesh castShadow>
-          <cylinderGeometry args={[0.22, 0.25, 0.16, 32]} />
-          <meshStandardMaterial color="#d7dce2" metalness={0.3} roughness={0.28} />
-        </mesh>
-
-        <group ref={shoulder} position={[0, 0.12, 0]}>
-          <JointMarker />
-          <ArmSegment length={0.72} />
-          <group ref={elbow} position={[0.72, 0, 0]}>
-            <JointMarker />
-            <ArmSegment length={0.60} thickness={0.11} />
-            <group ref={wrist} position={[0.60, 0, 0]}>
-              <JointMarker />
-              <ArmSegment length={0.24} thickness={0.09} />
-              <mesh position={[0.30, 0, 0]} castShadow>
-                <boxGeometry args={[0.18, 0.18, 0.22]} />
-                <meshStandardMaterial
-                  color="#8fd3ff"
-                  emissive="#16394d"
-                  metalness={0.15}
-                  roughness={0.28}
-                />
-              </mesh>
-            </group>
+      <group ref={pan} position={HEAD_PIVOT.toArray()}>
+        <group ref={tilt}>
+          <group position={HEAD_PIVOT.clone().multiplyScalar(-1).toArray()}>
+            <primitive object={head} />
+            <primitive object={glass} />
           </group>
         </group>
       </group>
@@ -142,48 +143,84 @@ function RobotBody({ state }) {
   )
 }
 
+function LoadingRobot() {
+  return (
+    <mesh position={[0, 0.07, 0]}>
+      <sphereGeometry args={[0.045, 32, 24]} />
+      <meshStandardMaterial color="#26313c" roughness={0.7} />
+    </mesh>
+  )
+}
+
 export default function RobotScene({ state }) {
   return (
     <Canvas
       shadows
-      camera={{ position: [4.8, 3.2, 4.8], fov: 42, near: 0.1, far: 100 }}
-      dpr={[1, 2]}
+      camera={{
+        position: [0.28, 0.18, 0.24],
+        fov: 34,
+        near: 0.005,
+        far: 10,
+      }}
+      dpr={[1, 1.75]}
+      gl={{ antialias: true, powerPreference: 'high-performance' }}
     >
       <color attach="background" args={['#090c11']} />
-      <fog attach="fog" args={['#090c11', 8, 24]} />
+      <fog attach="fog" args={['#090c11', 0.55, 1.8]} />
 
-      <ambientLight intensity={0.7} />
+      <hemisphereLight args={['#f4f7ff', '#11151b', 1.45]} />
       <directionalLight
         castShadow
-        position={[5, 8, 4]}
-        intensity={2.2}
+        position={[0.24, 0.42, 0.30]}
+        intensity={3.0}
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
+        shadow-camera-near={0.02}
+        shadow-camera-far={1.2}
+        shadow-camera-left={-0.18}
+        shadow-camera-right={0.18}
+        shadow-camera-top={0.22}
+        shadow-camera-bottom={-0.04}
       />
-      <directionalLight position={[-4, 3, -2]} intensity={0.55} />
+      <directionalLight position={[-0.22, 0.20, -0.18]} intensity={0.85} />
 
-      <RobotBody state={state} />
+      <Suspense fallback={<LoadingRobot />}>
+        <NovaModel state={state} />
+      </Suspense>
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.0015, 0]} receiveShadow>
+        <circleGeometry args={[0.42, 80]} />
+        <meshStandardMaterial color="#0b0f14" roughness={1} />
+      </mesh>
 
       <Grid
-        args={[40, 40]}
-        cellSize={0.5}
-        cellThickness={0.7}
-        cellColor="#29313b"
-        sectionSize={5}
-        sectionThickness={1.2}
-        sectionColor="#3e4a57"
-        fadeDistance={24}
-        fadeStrength={1}
+        args={[1, 1]}
+        position={[0, -0.0005, 0]}
+        cellSize={0.02}
+        cellThickness={0.45}
+        cellColor="#222a34"
+        sectionSize={0.1}
+        sectionThickness={0.85}
+        sectionColor="#36414d"
+        fadeDistance={0.9}
+        fadeStrength={1.2}
         infiniteGrid
       />
 
       <OrbitControls
         makeDefault
-        target={[0, 0.55, 0]}
-        minDistance={2.5}
-        maxDistance={14}
+        target={[0, 0.072, 0]}
+        minDistance={0.17}
+        maxDistance={1.2}
+        minPolarAngle={0.35}
         maxPolarAngle={Math.PI * 0.49}
+        enablePan={false}
       />
     </Canvas>
   )
 }
+
+useGLTF.preload('/models/nova-base.glb')
+useGLTF.preload('/models/nova-body.glb')
+useGLTF.preload('/models/nova-head.glb')
+useGLTF.preload('/models/nova-glass.glb')

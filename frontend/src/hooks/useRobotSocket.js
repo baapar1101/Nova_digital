@@ -2,16 +2,24 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const initialState = {
   type: 'state',
+  mode: 'simulation',
   seq: 0,
   timestamp: 0,
-  pose: { x: 0, y: 0, z: 0, yaw: 0 },
-  velocity: { linear: 0, angular: 0 },
-  tracks: { left: 0, right: 0, left_target: 0, right_target: 0 },
   joints: {
-    arm_base: 0,
-    shoulder: 0.55,
-    elbow: -1,
-    wrist: 0.35,
+    head_pan: 0,
+    head_tilt: 0,
+  },
+  joint_targets: {
+    head_pan: 0,
+    head_tilt: 0,
+  },
+  joint_velocity: {
+    head_pan: 0,
+    head_tilt: 0,
+  },
+  joint_limits: {
+    head_pan: { min: -Math.PI / 2, max: Math.PI / 2 },
+    head_tilt: { min: 0, max: Math.PI / 4 },
   },
   battery: 100,
 }

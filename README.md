@@ -6,6 +6,7 @@ Current powered head axes:
 
 - Pan: 180° total travel, represented as -90° to +90° around center.
 - Tilt: 0° (home/base position) to +45°.
+- Both pan and tilt rotate through the geometric center of the spherical head.
 
 The browser is the visualization/control layer. Python owns the real head state when a backend is connected and sends it over WebSocket at about 30 Hz.
 
@@ -93,20 +94,21 @@ The head shell and front glass are parented together and receive the same pan/ti
 
 Rhino exported many glTF primitives. The viewer merges those primitives at runtime inside each rigid assembly to reduce draw calls while preserving the CAD shape.
 
-The initial neck pivot in frontend/src/components/RobotScene.jsx is:
+The spherical outer head shell was fitted directly from the Rhino-exported mesh. Its center is:
 
 ~~~js
-const HEAD_PIVOT = new THREE.Vector3(0, 0.052, 0)
+const HEAD_SPHERE_CENTER = new THREE.Vector3(0, 0.09616257, 0)
 ~~~
 
-Units are meters. This is an initial estimate from the supplied geometry. Replace it with the exact bearing/tilt-axis coordinate when that measurement is available.
+The fitted outer radius is approximately 0.046323 m.
+
+Pan rotates around the vertical Y axis through this point. Tilt rotates around the Z axis through the same point. This makes the head rotate around the sphere center rather than swing around the neck/base.
 
 ## Next steps
 
-1. Calibrate the exact physical pivot.
-2. Confirm tilt direction and zero against the physical robot.
-3. Host the Python WebSocket service at a public WSS endpoint.
-4. Map Python targets to the real motor controller.
-5. Feed encoder feedback back into the same WebSocket state.
-6. Add face/display simulation, LEDs, audio, sensors and fault states.
-7. Add command ownership, hardware limits/watchdogs and the real safety path before remote actuation.
+1. Confirm tilt sign/direction against the physical robot.
+2. Host the Python WebSocket service at a public WSS endpoint.
+3. Map Python targets to the real motor controller.
+4. Feed encoder feedback back into the same WebSocket state.
+5. Add face/display simulation, LEDs, audio, sensors and fault states.
+6. Add command ownership, hardware limits/watchdogs and the real safety path before remote actuation.

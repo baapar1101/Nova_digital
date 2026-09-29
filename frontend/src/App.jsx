@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
+import FaceTrackerPanel from './components/FaceTrackerPanel.jsx'
 import RobotScene from './components/RobotScene.jsx'
+import { useFaceTracker } from './hooks/useFaceTracker.js'
 import { useMovementPlayer } from './hooks/useMovementPlayer.js'
 import { useRobotSocket } from './hooks/useRobotSocket.js'
 import {
@@ -102,6 +104,12 @@ export default function App() {
     onFaceChange: setScreenAnimation,
   })
 
+  const faceTracker = useFaceTracker({
+    send,
+    state,
+    onBeforeStart: movementPlayer.cancel,
+  })
+
   const selectedMovement = getMovementById(selectedMovementId)
   const categoryMovements = useMemo(
     () => MOVEMENTS.filter((movement) => movement.category === movementCategory),
@@ -115,8 +123,13 @@ export default function App() {
   const panVelocity = state.joint_velocity.head_pan ?? 0
   const tiltVelocity = state.joint_velocity.head_tilt ?? 0
 
-  const setJointDegrees = (joint, degrees) => {
+  const stopAutomaticControl = () => {
     movementPlayer.cancel()
+    faceTracker.stop()
+  }
+
+  const setJointDegrees = (joint, degrees) => {
+    stopAutomaticControl()
     send({
       type: 'joint_target',
       joint,
@@ -179,6 +192,8 @@ export default function App() {
         </div>
 
         <aside className="panel">
+          <FaceTrackerPanel tracker={faceTracker} />
+
           <section className="panel-section movement-section">
             <div className="section-title">
               <span>Movement library</span>
@@ -192,6 +207,7 @@ export default function App() {
                   className={movementCategory === category.id ? 'active' : ''}
                   onClick={() => {
                     movementPlayer.cancel()
+                    faceTracker.stop()
                     setMovementCategory(category.id)
                     const first = MOVEMENTS.find(
                       (movement) => movement.category === category.id,
@@ -214,6 +230,7 @@ export default function App() {
                   }
                   onClick={() => {
                     movementPlayer.cancel()
+                    faceTracker.stop()
                     setSelectedMovementId(movement.id)
                   }}
                 >
@@ -253,7 +270,10 @@ export default function App() {
               <div className="movement-actions">
                 <button
                   className="play-button"
-                  onClick={() => movementPlayer.play(selectedMovement, playMode)}
+                  onClick={() => {
+                    faceTracker.stop()
+                    movementPlayer.play(selectedMovement, playMode)
+                  }}
                 >
                   {movementPlayer.playing ? 'Restart movement' : 'Play movement'}
                 </button>
@@ -313,7 +333,7 @@ export default function App() {
               minDegrees={-90}
               maxDegrees={90}
               send={send}
-              beforeChange={movementPlayer.cancel}
+              beforeChange={stopAutomaticControl}
             />
 
             <JointSlider
@@ -324,7 +344,7 @@ export default function App() {
               minDegrees={0}
               maxDegrees={45}
               send={send}
-              beforeChange={movementPlayer.cancel}
+              beforeChange={stopAutomaticControl}
             />
           </section>
 
@@ -340,7 +360,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => {
-                  movementPlayer.cancel()
+                  stopAutomaticControl()
                   send({ type: 'home' })
                 }}
               >
@@ -379,7 +399,7 @@ export default function App() {
             <button
               className="secondary-button"
               onClick={() => {
-                movementPlayer.cancel()
+                stopAutomaticControl()
                 send({ type: 'home' })
               }}
             >
@@ -388,7 +408,7 @@ export default function App() {
             <button
               className="estop-button"
               onClick={() => {
-                movementPlayer.cancel()
+                stopAutomaticControl()
                 send({ type: 'estop' })
               }}
             >

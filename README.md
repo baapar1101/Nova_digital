@@ -1,100 +1,95 @@
 # Nova Digital Twin
 
-Initial digital-twin prototype for the Nova robot.
+Web + Python digital-twin prototype for the Nova robot.
 
-This repository starts with a working vertical slice:
+Current powered head axes:
 
-- **Web frontend:** React + Three.js via React Three Fiber
-- **Python backend:** FastAPI
-- **Realtime link:** WebSocket
-- **Simulation:** lightweight differential-drive + articulated-joint state simulator
-- **Controls:** W/A/S/D or arrow keys, Space for stop
-- **Telemetry:** pose, speed, track commands, arm joint state, battery, connection status
+- Pan: 180° total travel, represented as -90° to +90° around center.
+- Tilt: 0° (home/base position) to +45°.
 
-The first version intentionally uses a procedural placeholder robot so the software can run before the final GLB/URDF/MJCF assets are wired in. The backend interface is designed so the simple simulator can later be replaced by MuJoCo/ROS 2 without changing the browser protocol.
+The browser is the visualization/control layer. Python owns the head state and sends it over WebSocket at about 30 Hz.
 
-## Run locally
+## Stack
 
-### 1. Backend
+- React + Vite
+- Three.js / React Three Fiber
+- FastAPI
+- WebSocket
+- Real Nova GLB geometry exported from Rhino
+- Velocity- and acceleration-limited pan/tilt motion simulator
 
-```bash
+## Run
+
+Backend:
+
+~~~bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+~~~
 
-Backend endpoints:
+Frontend:
 
-- `GET http://localhost:8000/health`
-- `GET http://localhost:8000/api/state`
-- `WS  ws://localhost:8000/ws/robot`
-
-### 2. Frontend
-
-```bash
+~~~bash
 cd frontend
 npm install
 npm run dev
-```
+~~~
 
-Open the Vite URL shown in the terminal, normally `http://localhost:5173`.
+Open http://localhost:5173.
 
-If the backend is on another machine, create `frontend/.env.local`:
+If Python runs on another machine, set VITE_ROBOT_WS_URL in frontend/.env.local.
 
-```env
-VITE_ROBOT_WS_URL=ws://192.168.1.50:8000/ws/robot
-```
+## Motion protocol
 
-## Controls
+Browser to Python:
 
-| Input | Action |
-| --- | --- |
-| W / Arrow Up | Forward |
-| S / Arrow Down | Reverse |
-| A / Arrow Left | Turn left |
-| D / Arrow Right | Turn right |
-| Space | Stop |
+~~~json
+{"type":"joint_target","joint":"head_pan","target":0.785398}
+~~~
 
-## Protocol
+Angles are radians. Valid joints are head_pan and head_tilt.
 
-Browser -> Python:
+Home:
 
-```json
-{"type":"drive","left":0.7,"right":0.7}
-```
+~~~json
+{"type":"home"}
+~~~
 
-```json
+Stop at the current position:
+
+~~~json
 {"type":"estop"}
-```
+~~~
 
-Python -> Browser:
+## CAD / model
 
-```json
-{
-  "type": "state",
-  "seq": 42,
-  "timestamp": 0.0,
-  "pose": {"x": 0.0, "y": 0.0, "z": 0.0, "yaw": 0.0},
-  "velocity": {"linear": 0.0, "angular": 0.0},
-  "tracks": {"left": 0.0, "right": 0.0},
-  "joints": {
-    "arm_base": 0.0,
-    "shoulder": 0.0,
-    "elbow": 0.0,
-    "wrist": 0.0
-  },
-  "battery": 100.0
-}
-```
+The viewer uses the supplied Rhino exports as four rigid assemblies:
 
-## Next engineering steps
+- nova-base.glb
+- nova-body.glb
+- nova-head.glb
+- nova-glass.glb
 
-1. Export the production robot mesh as GLB with stable part/joint names.
-2. Add a robot configuration file mapping GLB node names to physical joints.
-3. Build the MuJoCo model with real dimensions, joint limits, masses and actuators.
-4. Replace the kinematic simulator with a MuJoCo adapter while retaining the WebSocket state schema.
-5. Add camera/LiDAR/IMU telemetry and ROS 2 integration.
-6. Add command authorization, watchdogs and a hardware E-stop path before controlling the real robot.
+The head shell and front glass are parented together and receive the same pan/tilt transform.
 
+Rhino exported thousands of glTF primitives. The viewer merges those primitives at runtime inside each rigid assembly to reduce draw calls while preserving the CAD shape.
+
+The initial neck pivot in frontend/src/components/RobotScene.jsx is:
+
+~~~js
+const HEAD_PIVOT = new THREE.Vector3(0, 0.052, 0)
+~~~
+
+Units are meters. This is an initial estimate from the supplied geometry. Replace it with the exact bearing/tilt-axis coordinate when that measurement is available.
+
+## Next steps
+
+1. Calibrate the exact physical pivot.
+2. Confirm tilt direction and zero against the physical robot.
+3. Map Python targets to the real motor controller.
+4. Feed encoder feedback back into the same WebSocket state.
+5. Add face/display simulation, LEDs, audio, sensors and fault states.
+6. Add command ownership, hardware limits/watchdogs and the real safety path before remote actuation.

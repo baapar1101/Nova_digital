@@ -99,7 +99,7 @@ h1 {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-columns: minmax(0, 1fr) 350px;
   min-height: 0;
 }
 
@@ -127,12 +127,13 @@ h1 {
   pointer-events: none;
 }
 
-.speed-badge {
+.pose-badge {
   position: absolute;
   top: 18px;
   left: 20px;
-  display: grid;
-  gap: 3px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
@@ -141,15 +142,27 @@ h1 {
   pointer-events: none;
 }
 
-.speed-badge span {
+.pose-badge > div {
+  display: grid;
+  gap: 3px;
+}
+
+.pose-badge i {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.pose-badge span {
   color: #667687;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.16em;
 }
 
-.speed-badge strong {
-  font-size: 19px;
+.pose-badge strong {
+  min-width: 52px;
+  font-size: 18px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -213,25 +226,60 @@ h1 {
 
 .joint-control {
   display: block;
-  margin: 13px 0;
+  margin: 18px 0;
 }
 
-.joint-control > div {
+.joint-heading {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: #8592a0;
   font-size: 11px;
 }
 
-.joint-control strong {
+.joint-heading strong {
   color: #dce4ec;
   font-variant-numeric: tabular-nums;
+}
+
+.joint-heading strong small {
+  margin-left: 6px;
+  color: #657483;
+  font-size: 9px;
+  font-weight: 600;
 }
 
 .joint-control input {
   width: 100%;
   accent-color: #79c7ff;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: #566270;
+  font-size: 9px;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preset-grid button {
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #cfd8e2;
+  background: #121821;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preset-grid button:hover {
+  background: #19222d;
 }
 
 .controls {
@@ -267,6 +315,13 @@ h1 {
 
 .estop-button:hover {
   background: rgba(188, 40, 40, 0.34);
+}
+
+.engineering-note {
+  margin: 16px 0 0;
+  color: #687583;
+  font-size: 10px;
+  line-height: 1.55;
 }
 
 .error-message {

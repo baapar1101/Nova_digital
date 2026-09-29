@@ -593,3 +593,208 @@ h1 {
     display: none;
   }
 }
+
+
+/* Face tracker */
+.face-tracker-section {
+  padding-top: 0;
+}
+
+.camera-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(77, 103, 128, 0.15), transparent 38%),
+    #080c11;
+}
+
+.camera-preview video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.camera-preview.active video {
+  opacity: 1;
+}
+
+.camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  padding: 20px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.camera-placeholder strong {
+  color: #a9b5c1;
+  font-size: 11px;
+}
+
+.camera-placeholder span {
+  max-width: 220px;
+  color: #566574;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.camera-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 42px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.camera-crosshair::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(121, 199, 255, 0.36);
+  border-radius: 50%;
+}
+
+.camera-crosshair i,
+.camera-crosshair b {
+  position: absolute;
+  display: block;
+  background: rgba(121, 199, 255, 0.46);
+}
+
+.camera-crosshair i {
+  left: 50%;
+  top: -7px;
+  width: 1px;
+  height: 56px;
+}
+
+.camera-crosshair b {
+  left: -7px;
+  top: 50%;
+  width: 56px;
+  height: 1px;
+}
+
+.face-box {
+  position: absolute;
+  border: 1.5px solid rgba(91, 222, 153, 0.88);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 0 1px rgba(91, 222, 153, 0.14),
+    0 0 14px rgba(91, 222, 153, 0.13);
+  pointer-events: none;
+  transition:
+    left 80ms linear,
+    top 80ms linear,
+    width 80ms linear,
+    height 80ms linear;
+}
+
+.face-box span {
+  position: absolute;
+  left: -1px;
+  top: -20px;
+  padding: 2px 5px;
+  border-radius: 5px 5px 5px 0;
+  color: #bff4d6;
+  background: rgba(15, 66, 42, 0.88);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.tracker-actions {
+  display: grid;
+  margin-top: 9px;
+}
+
+.tracker-start-button,
+.tracker-stop-button {
+  min-height: 42px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.tracker-start-button {
+  border: 1px solid rgba(91, 222, 153, 0.45);
+  color: #d9fae7;
+  background: rgba(47, 153, 97, 0.17);
+}
+
+.tracker-start-button:hover {
+  background: rgba(47, 153, 97, 0.25);
+}
+
+.tracker-stop-button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d7dee6;
+  background: #131a22;
+}
+
+.tracker-slider {
+  display: block;
+  margin-top: 12px;
+}
+
+.tracker-slider > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: #71808f;
+  font-size: 10px;
+}
+
+.tracker-slider strong {
+  color: #dce5ed;
+  font-variant-numeric: tabular-nums;
+}
+
+.tracker-slider input {
+  width: 100%;
+  accent-color: #5bde99;
+}
+
+.tracker-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.tracker-options label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 7px;
+  color: #778694;
+  background: #0f151c;
+  font-size: 9px;
+}
+
+.tracker-options input {
+  accent-color: #5bde99;
+}
+
+.tracker-note {
+  margin: 9px 0 0;
+  color: #586675;
+  font-size: 8px;
+  line-height: 1.5;
+}

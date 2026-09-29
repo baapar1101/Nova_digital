@@ -7,7 +7,9 @@ Current powered head axes:
 - Pan: 180° total travel, represented as -90° to +90° around center.
 - Tilt: 0° (home/base position) to +45°.
 
-The browser is the visualization/control layer. Python owns the head state and sends it over WebSocket at about 30 Hz.
+The browser is the visualization/control layer. Python owns the real head state when a backend is connected and sends it over WebSocket at about 30 Hz.
+
+For public frontend deployments without a backend URL, the UI automatically enters **WEB DEMO** mode. That makes the Vercel build interactive while preserving the same control/state shape used by Python.
 
 ## Stack
 
@@ -16,9 +18,9 @@ The browser is the visualization/control layer. Python owns the head state and s
 - FastAPI
 - WebSocket
 - Real Nova GLB geometry exported from Rhino
-- Velocity- and acceleration-limited pan/tilt motion simulator
+- Velocity- and acceleration-limited pan/tilt motion model
 
-## Run
+## Run locally
 
 Backend:
 
@@ -40,7 +42,21 @@ npm run dev
 
 Open http://localhost:5173.
 
-If Python runs on another machine, set VITE_ROBOT_WS_URL in frontend/.env.local.
+Local frontend builds automatically try ws://localhost:8000/ws/robot.
+
+## Vercel
+
+The repository contains a root vercel.json, so importing the repository into Vercel builds the frontend directly.
+
+Without VITE_ROBOT_WS_URL, the deployed site uses WEB DEMO mode.
+
+To connect a deployed frontend to the Python backend, set:
+
+~~~text
+VITE_ROBOT_WS_URL=wss://your-public-backend.example/ws/robot
+~~~
+
+The public site should use WSS, not an insecure ws:// endpoint.
 
 ## Motion protocol
 
@@ -75,7 +91,7 @@ The viewer uses the supplied Rhino exports as four rigid assemblies:
 
 The head shell and front glass are parented together and receive the same pan/tilt transform.
 
-Rhino exported thousands of glTF primitives. The viewer merges those primitives at runtime inside each rigid assembly to reduce draw calls while preserving the CAD shape.
+Rhino exported many glTF primitives. The viewer merges those primitives at runtime inside each rigid assembly to reduce draw calls while preserving the CAD shape.
 
 The initial neck pivot in frontend/src/components/RobotScene.jsx is:
 
@@ -89,7 +105,8 @@ Units are meters. This is an initial estimate from the supplied geometry. Replac
 
 1. Calibrate the exact physical pivot.
 2. Confirm tilt direction and zero against the physical robot.
-3. Map Python targets to the real motor controller.
-4. Feed encoder feedback back into the same WebSocket state.
-5. Add face/display simulation, LEDs, audio, sensors and fault states.
-6. Add command ownership, hardware limits/watchdogs and the real safety path before remote actuation.
+3. Host the Python WebSocket service at a public WSS endpoint.
+4. Map Python targets to the real motor controller.
+5. Feed encoder feedback back into the same WebSocket state.
+6. Add face/display simulation, LEDs, audio, sensors and fault states.
+7. Add command ownership, hardware limits/watchdogs and the real safety path before remote actuation.

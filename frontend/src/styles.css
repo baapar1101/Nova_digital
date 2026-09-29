@@ -97,6 +97,15 @@ h1 {
   box-shadow: 0 0 14px rgba(74, 212, 141, 0.7);
 }
 
+.connection.demo {
+  color: #f0c779;
+}
+
+.connection.demo span {
+  background: #dca84d;
+  box-shadow: 0 0 14px rgba(220, 168, 77, 0.5);
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 350px;

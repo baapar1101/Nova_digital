@@ -70,7 +70,7 @@ function JointSlider({
 }
 
 export default function App() {
-  const { connected, state, lastError, send } = useRobotSocket()
+  const { connected, transport, state, lastError, send } = useRobotSocket()
 
   const pan = state.joints.head_pan ?? 0
   const tilt = state.joints.head_tilt ?? 0
@@ -87,6 +87,13 @@ export default function App() {
     })
   }
 
+  const connectionLabel =
+    transport === 'python'
+      ? 'PYTHON ONLINE'
+      : transport === 'demo'
+        ? 'WEB DEMO'
+        : 'CONNECTING'
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -95,9 +102,14 @@ export default function App() {
           <h1>Digital Twin</h1>
         </div>
 
-        <div className={'connection ' + (connected ? 'online' : 'offline')}>
+        <div
+          className={
+            'connection ' +
+            (connected ? 'online' : transport === 'demo' ? 'demo' : 'offline')
+          }
+        >
           <span />
-          {connected ? 'PYTHON ONLINE' : 'DISCONNECTED'}
+          {connectionLabel}
         </div>
       </header>
 
@@ -106,7 +118,7 @@ export default function App() {
           <RobotScene state={state} />
 
           <div className="viewport-hint">
-            Drag to orbit · Scroll to zoom · Head motion is driven by Python
+            Drag to orbit · Scroll to zoom · Pan and tilt follow simulated servo dynamics
           </div>
 
           <div className="pose-badge">
@@ -151,7 +163,7 @@ export default function App() {
           <section className="panel-section">
             <div className="section-title">
               <span>Head control</span>
-              <small>servo targets</small>
+              <small>{transport === 'python' ? 'Python targets' : 'demo targets'}</small>
             </div>
 
             <JointSlider
@@ -212,8 +224,8 @@ export default function App() {
 
           <p className="engineering-note">
             Mechanical range: pan 180° total (−90° to +90°), tilt 0° to 45°.
-            The current 3D neck pivot is an initial CAD-based estimate and can
-            be calibrated to the exact bearing center later.
+            Public builds run a browser demo when no WebSocket backend is configured.
+            Set VITE_ROBOT_WS_URL to a public WSS endpoint to switch to Python.
           </p>
 
           {lastError && <p className="error-message">{lastError}</p>}

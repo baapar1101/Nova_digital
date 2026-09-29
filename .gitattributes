@@ -1,0 +1,2 @@
+3d_model/all_with_details.3dm filter=lfs diff=lfs merge=lfs -text
+3d_model/all_with_details.3dmbak filter=lfs diff=lfs merge=lfs -text

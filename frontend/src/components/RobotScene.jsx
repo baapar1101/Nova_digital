@@ -4,7 +4,9 @@ import { Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 
-const HEAD_PIVOT = new THREE.Vector3(0, 0.052, 0)
+// Center of the spherical head shell, fitted from the Rhino-exported CAD.
+// Both pan and tilt axes pass through this point.
+const HEAD_SPHERE_CENTER = new THREE.Vector3(0, 0.09616257, 0)
 
 function mergeRhinoScene(scene, material) {
   scene.updateMatrixWorld(true)
@@ -131,9 +133,17 @@ function NovaModel({ state }) {
       <primitive object={base} />
       <primitive object={body} />
 
-      <group ref={pan} position={HEAD_PIVOT.toArray()}>
+      {/*
+        Move the rotation origin to the center of the spherical head, apply pan
+        around Y and tilt around Z, then move the CAD back into world space.
+        This makes the shell rotate around its own sphere instead of swinging
+        around the neck/base point.
+      */}
+      <group ref={pan} position={HEAD_SPHERE_CENTER.toArray()}>
         <group ref={tilt}>
-          <group position={HEAD_PIVOT.clone().multiplyScalar(-1).toArray()}>
+          <group
+            position={HEAD_SPHERE_CENTER.clone().multiplyScalar(-1).toArray()}
+          >
             <primitive object={head} />
             <primitive object={glass} />
           </group>

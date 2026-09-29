@@ -18,37 +18,10 @@ const SCREEN_NORMAL = new THREE.Vector3(
 ).normalize()
 const SCREEN_SURFACE = SCREEN_CENTER.clone().addScaledVector(SCREEN_NORMAL, 0.00125)
 const SCREEN_RADIUS = 0.0408
-
-// A plane normal alone leaves one degree of freedom: roll around the normal.
-// Build a full orthonormal basis so the face animation has a deterministic
-// "up" direction matching the robot's vertical direction.
-const SCREEN_WORLD_UP = new THREE.Vector3(0, 1, 0)
-const SCREEN_Z = SCREEN_NORMAL.clone().normalize()
-const SCREEN_X = new THREE.Vector3()
-  .crossVectors(SCREEN_Z, SCREEN_WORLD_UP)
-  .normalize()
-const SCREEN_Y = new THREE.Vector3()
-  .crossVectors(SCREEN_X, SCREEN_Z)
-  .normalize()
-
-const SCREEN_ROTATION_MATRIX = new THREE.Matrix4().makeBasis(
-  SCREEN_X,
-  SCREEN_Y,
-  SCREEN_Z,
+const SCREEN_QUATERNION = new THREE.Quaternion().setFromUnitVectors(
+  new THREE.Vector3(0, 0, 1),
+  SCREEN_NORMAL,
 )
-
-const SCREEN_QUATERNION = new THREE.Quaternion().setFromRotationMatrix(
-  SCREEN_ROTATION_MATRIX,
-)
-
-// Fine calibration around the screen normal. Keep this at zero unless the
-// physical screen needs a deliberate roll offset.
-const SCREEN_ROLL = THREE.MathUtils.degToRad(0)
-const SCREEN_ROLL_QUATERNION = new THREE.Quaternion().setFromAxisAngle(
-  SCREEN_Z,
-  SCREEN_ROLL,
-)
-SCREEN_QUATERNION.premultiply(SCREEN_ROLL_QUATERNION)
 
 function mergeRhinoScene(scene, material) {
   scene.updateMatrixWorld(true)

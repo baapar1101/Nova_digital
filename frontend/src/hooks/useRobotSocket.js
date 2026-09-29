@@ -1,0 +1,97 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+const initialState = {
+  type: 'state',
+  seq: 0,
+  timestamp: 0,
+  pose: { x: 0, y: 0, z: 0, yaw: 0 },
+  velocity: { linear: 0, angular: 0 },
+  tracks: { left: 0, right: 0, left_target: 0, right_target: 0 },
+  joints: {
+    arm_base: 0,
+    shoulder: 0.55,
+    elbow: -1,
+    wrist: 0.35,
+  },
+  battery: 100,
+}
+
+function defaultWebSocketUrl() {
+  if (import.meta.env.VITE_ROBOT_WS_URL) {
+    return import.meta.env.VITE_ROBOT_WS_URL
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://'
+  return protocol + window.location.hostname + ':8000/ws/robot'
+}
+
+export function useRobotSocket() {
+  const socketRef = useRef(null)
+  const reconnectTimerRef = useRef(null)
+  const [connected, setConnected] = useState(false)
+  const [state, setState] = useState(initialState)
+  const [lastError, setLastError] = useState('')
+
+  useEffect(() => {
+    let stopped = false
+
+    const connect = () => {
+      if (stopped) return
+
+      const socket = new WebSocket(defaultWebSocketUrl())
+      socketRef.current = socket
+
+      socket.onopen = () => {
+        setConnected(true)
+        setLastError('')
+      }
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data)
+          if (message.type === 'state') {
+            setState(message)
+          } else if (message.type === 'error') {
+            setLastError(message.message || 'Backend error')
+          }
+        } catch {
+          setLastError('Received invalid JSON from backend')
+        }
+      }
+
+      socket.onerror = () => {
+        setLastError('WebSocket connection error')
+      }
+
+      socket.onclose = () => {
+        setConnected(false)
+        if (!stopped) {
+          reconnectTimerRef.current = window.setTimeout(connect, 1500)
+        }
+      }
+    }
+
+    connect()
+
+    return () => {
+      stopped = true
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current)
+      }
+      if (socketRef.current) {
+        socketRef.current.close()
+      }
+    }
+  }, [])
+
+  const send = useCallback((message) => {
+    const socket = socketRef.current
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message))
+      return true
+    }
+    return false
+  }, [])
+
+  return { connected, state, lastError, send }
+}

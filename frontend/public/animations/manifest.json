@@ -1,0 +1,13 @@
+{
+  "default": "blinking",
+  "animations": [
+    "blinking",
+    "winking",
+    "giggling",
+    "drinking",
+    "afraiding",
+    "tireding",
+    "loving",
+    "heart-eying"
+  ]
+}

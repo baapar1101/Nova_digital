@@ -95,16 +95,37 @@ export function useFaceTracker({ send, state, onBeforeStart }) {
   const lastControlRef = useRef(0)
   const lastVideoTimeRef = useRef(-1)
   const smoothedErrorRef = useRef({ x: 0, y: 0 })
+  const sensitivityRef = useRef(1)
+  const invertPanRef = useRef(false)
+  const invertTiltRef = useRef(false)
 
   const [tracking, setTracking] = useState(false)
   const [status, setStatus] = useState('off')
   const [error, setError] = useState('')
   const [face, setFace] = useState(null)
-  const [sensitivity, setSensitivity] = useState(1)
-  const [invertPan, setInvertPan] = useState(false)
-  const [invertTilt, setInvertTilt] = useState(false)
+  const [sensitivity, setSensitivityState] = useState(1)
+  const [invertPan, setInvertPanState] = useState(false)
+  const [invertTilt, setInvertTiltState] = useState(false)
 
   stateRef.current = state
+
+  const setSensitivity = useCallback((value) => {
+    const next = clamp(Number(value), 0.5, 1.8)
+    sensitivityRef.current = next
+    setSensitivityState(next)
+  }, [])
+
+  const setInvertPan = useCallback((value) => {
+    const next = Boolean(value)
+    invertPanRef.current = next
+    setInvertPanState(next)
+  }, [])
+
+  const setInvertTilt = useCallback((value) => {
+    const next = Boolean(value)
+    invertTiltRef.current = next
+    setInvertTiltState(next)
+  }, [])
 
   const ensureDetector = useCallback(async () => {
     if (detectorRef.current) return detectorRef.current
@@ -186,13 +207,18 @@ export function useFaceTracker({ send, state, onBeforeStart }) {
         return
       }
 
-      const panDirection = invertPan ? -1 : 1
-      const tiltDirection = invertTilt ? -1 : 1
+      // Read live settings from refs so Reverse Pan / Reverse Tilt and
+      // sensitivity changes take effect immediately while tracking is running.
+      // The requestAnimationFrame loop is created only once when tracking
+      // starts, so closing over React state here would freeze the old values.
+      const panDirection = invertPanRef.current ? -1 : 1
+      const tiltDirection = invertTiltRef.current ? -1 : 1
+      const liveSensitivity = sensitivityRef.current
 
       // Convert image-space error into a bounded angular velocity. The camera
       // is fixed to the head, so repeated small corrections converge naturally.
-      const panRate = 82 * DEG_TO_RAD * sensitivity
-      const tiltRate = 58 * DEG_TO_RAD * sensitivity
+      const panRate = 82 * DEG_TO_RAD * liveSensitivity
+      const tiltRate = 58 * DEG_TO_RAD * liveSensitivity
 
       const nextPan = clamp(
         currentPan + panDirection * panError * panRate * elapsed,
@@ -221,7 +247,7 @@ export function useFaceTracker({ send, state, onBeforeStart }) {
 
       setStatus('tracking')
     },
-    [invertPan, invertTilt, send, sensitivity],
+    [send],
   )
 
   const start = useCallback(async () => {

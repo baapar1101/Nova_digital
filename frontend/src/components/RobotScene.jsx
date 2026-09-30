@@ -36,6 +36,10 @@ const SCREEN_QUATERNION = new THREE.Quaternion().setFromUnitVectors(
   SCREEN_NORMAL,
 )
 
+// Roll only the face/video inside the already-aligned glass plane.
+// Calibrated from the current front-view screenshot: 16.4 degrees CCW.
+const SCREEN_ROLL = THREE.MathUtils.degToRad(16.4)
+
 function mergeRhinoScene(scene, material) {
   scene.updateMatrixWorld(true)
   const geometries = []
@@ -155,19 +159,20 @@ function ScreenDisplay({ animation }) {
   }, [media])
 
   return (
-    <mesh
+    <group
       position={SCREEN_SURFACE.toArray()}
       quaternion={SCREEN_QUATERNION.toArray()}
-      renderOrder={20}
     >
-      <circleGeometry args={[SCREEN_RADIUS, 96]} />
-      <meshBasicMaterial
-        map={media.texture}
-        toneMapped={false}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-      />
-    </mesh>
+      <mesh rotation={[0, 0, SCREEN_ROLL]} renderOrder={20}>
+        <circleGeometry args={[SCREEN_RADIUS, 96]} />
+        <meshBasicMaterial
+          map={media.texture}
+          toneMapped={false}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
   )
 }
 

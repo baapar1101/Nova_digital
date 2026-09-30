@@ -142,9 +142,9 @@ export default function App() {
   const connectionLabel =
     transport === 'python'
       ? 'PYTHON ONLINE'
-      : transport === 'demo'
-        ? 'WEB DEMO'
-        : 'CONNECTING'
+      : transport === 'connecting'
+        ? 'CONNECTING'
+        : null
 
   return (
     <>
@@ -157,15 +157,16 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
-          <div
-            className={
-              'connection ' +
-              (connected ? 'online' : transport === 'demo' ? 'demo' : 'offline')
-            }
-          >
-            <span />
-            {connectionLabel}
-          </div>
+          {connectionLabel && (
+            <div
+              className={
+                'connection ' + (connected ? 'online' : 'offline')
+              }
+            >
+              <span />
+              {connectionLabel}
+            </div>
+          )}
           <InstallPwa />
         </div>
       </header>
@@ -329,7 +330,7 @@ export default function App() {
           <section className="panel-section">
             <div className="section-title">
               <span>Head control</span>
-              <small>{transport === 'python' ? 'Python targets' : 'demo targets'}</small>
+              <small>Targets</small>
             </div>
 
             <JointSlider

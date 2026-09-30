@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import FaceTrackerPanel from './components/FaceTrackerPanel.jsx'
+import LoadingOverlay from './components/LoadingOverlay.jsx'
 import RobotScene from './components/RobotScene.jsx'
 import { useFaceTracker } from './hooks/useFaceTracker.js'
 import { useMovementPlayer } from './hooks/useMovementPlayer.js'
@@ -145,7 +146,9 @@ export default function App() {
         : 'CONNECTING'
 
   return (
-    <main className="app-shell">
+    <>
+      <LoadingOverlay />
+      <main className="app-shell">
       <header className="topbar">
         <div>
           <p className="eyebrow">NOVA ROBOTICS</p>
@@ -425,6 +428,7 @@ export default function App() {
           {lastError && <p className="error-message">{lastError}</p>}
         </aside>
       </section>
-    </main>
+      </main>
+    </>
   )
 }

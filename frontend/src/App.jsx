@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import FaceTrackerPanel from './components/FaceTrackerPanel.jsx'
 import LoadingOverlay from './components/LoadingOverlay.jsx'
+import InstallPwa from './components/InstallPwa.jsx'
 import RobotScene from './components/RobotScene.jsx'
 import { useFaceTracker } from './hooks/useFaceTracker.js'
 import { useMovementPlayer } from './hooks/useMovementPlayer.js'
@@ -155,14 +156,17 @@ export default function App() {
           <h1>Digital Twin</h1>
         </div>
 
-        <div
-          className={
-            'connection ' +
-            (connected ? 'online' : transport === 'demo' ? 'demo' : 'offline')
-          }
-        >
-          <span />
-          {connectionLabel}
+        <div className="topbar-actions">
+          <div
+            className={
+              'connection ' +
+              (connected ? 'online' : transport === 'demo' ? 'demo' : 'offline')
+            }
+          >
+            <span />
+            {connectionLabel}
+          </div>
+          <InstallPwa />
         </div>
       </header>
 

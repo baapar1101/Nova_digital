@@ -10,10 +10,10 @@ const HEAD_SPHERE_CENTER = new THREE.Vector3(0, 0.09616257, 0)
 
 // The Rhino glass is a circular plate tilted 15 degrees from the YZ plane.
 // These values are fitted directly from nova-glass.glb.
-const SCREEN_CENTER = new THREE.Vector3(0.01278194, 0.09985127, 0.00020264)
+const SCREEN_CENTER = new THREE.Vector3(0.01275466, 0.09991729, 0)
 const SCREEN_NORMAL = new THREE.Vector3(
-  0.965912353,
-  0.258869325,
+  0.9659736,
+  0.25864062,
   0,
 ).normalize()
 const SCREEN_SURFACE = SCREEN_CENTER.clone().addScaledVector(SCREEN_NORMAL, 0.00125)

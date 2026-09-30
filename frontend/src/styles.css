@@ -1063,3 +1063,388 @@ h1 {
     width: 146px;
   }
 }
+
+
+/* PWA + responsive mobile layout */
+html {
+  background: #080b10;
+}
+
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input[type='range'] {
+  touch-action: manipulation;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pwa-install-wrap {
+  position: relative;
+}
+
+.pwa-install-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(121, 199, 255, 0.3);
+  border-radius: 8px;
+  color: #dff3ff;
+  background: rgba(56, 139, 197, 0.12);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.pwa-install-button:hover {
+  background: rgba(56, 139, 197, 0.2);
+}
+
+.pwa-installed-badge {
+  display: inline-grid;
+  place-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(91, 222, 153, 0.25);
+  border-radius: 7px;
+  color: #9de5bd;
+  background: rgba(47, 153, 97, 0.09);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.pwa-ios-help {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 100;
+  width: min(280px, calc(100vw - 28px));
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 10px;
+  color: #dfe6ed;
+  background: rgba(13, 19, 26, 0.98);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.36);
+}
+
+.pwa-ios-help strong {
+  font-size: 11px;
+}
+
+.pwa-ios-help span {
+  color: #8190a0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.pwa-ios-help button {
+  justify-self: start;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  color: #aebbc8;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 9px;
+}
+
+@media (max-width: 860px) {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    height: auto;
+  }
+
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+    height: auto;
+    grid-template-rows: auto auto;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    min-height: 64px;
+    padding:
+      calc(8px + env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      9px
+      max(14px, env(safe-area-inset-left));
+  }
+
+  .topbar > div:first-child {
+    min-width: 0;
+  }
+
+  .eyebrow {
+    font-size: 8px;
+  }
+
+  h1 {
+    font-size: 17px;
+  }
+
+  .topbar-actions {
+    flex: 0 0 auto;
+    gap: 7px;
+  }
+
+  .connection {
+    gap: 6px;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+  }
+
+  .connection span {
+    width: 7px;
+    height: 7px;
+  }
+
+  .pwa-install-button {
+    min-height: 36px;
+    padding: 0 10px;
+  }
+
+  .workspace {
+    display: block;
+    min-height: 0;
+  }
+
+  .viewport {
+    width: 100%;
+    height: min(56dvh, 540px);
+    min-height: 340px;
+  }
+
+  .viewport canvas {
+    touch-action: none;
+  }
+
+  .panel {
+    overflow: visible;
+    min-height: auto;
+    padding:
+      14px
+      max(14px, env(safe-area-inset-right))
+      calc(28px + env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 0;
+  }
+
+  .panel-section {
+    padding: 18px 0;
+  }
+
+  .panel-section:first-child {
+    padding-top: 2px;
+  }
+
+  .viewport-hint {
+    display: none;
+  }
+
+  .pose-badge,
+  .movement-live-badge {
+    top: 12px;
+    padding: 9px 10px;
+  }
+
+  .pose-badge {
+    left: 12px;
+    gap: 10px;
+  }
+
+  .movement-live-badge {
+    right: 12px;
+  }
+
+  .pose-badge strong {
+    min-width: 44px;
+    font-size: 15px;
+  }
+
+  .pose-badge span,
+  .movement-live-badge span {
+    font-size: 8px;
+  }
+
+  .movement-live-badge strong {
+    font-size: 11px;
+  }
+
+  .category-tabs button,
+  .animation-button,
+  .preset-grid button,
+  .play-button,
+  .stop-button,
+  .secondary-button,
+  .estop-button,
+  .tracker-start-button,
+  .tracker-stop-button {
+    min-height: 44px;
+  }
+
+  .joint-control input[type='range'],
+  .tracker-slider input[type='range'] {
+    min-height: 34px;
+  }
+
+  .camera-preview {
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    gap: 8px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+
+  .connection {
+    max-width: 84px;
+    line-height: 1.1;
+  }
+
+  .pwa-install-button {
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  .viewport {
+    height: 52dvh;
+    min-height: 330px;
+    max-height: 480px;
+  }
+
+  .category-tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .movement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .movement-card {
+    min-height: 72px;
+  }
+
+  .movement-actions {
+    grid-template-columns: 1fr 82px;
+  }
+
+  .animation-grid,
+  .preset-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tracker-options {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-preview {
+    aspect-ratio: 4 / 3;
+  }
+
+  .section-title {
+    gap: 12px;
+  }
+
+  .section-title small {
+    text-align: right;
+  }
+
+  .loading-content {
+    width: min(320px, calc(100vw - 30px));
+  }
+
+  .loading-face-shell {
+    width: 138px;
+  }
+}
+
+@media (max-width: 360px) {
+  .eyebrow {
+    display: none;
+  }
+
+  h1 {
+    font-size: 16px;
+  }
+
+  .connection {
+    font-size: 8px;
+  }
+
+  .pwa-install-button {
+    min-height: 34px;
+    padding: 0 7px;
+  }
+
+  .pose-badge {
+    transform: scale(0.92);
+    transform-origin: top left;
+  }
+
+  .movement-live-badge {
+    transform: scale(0.92);
+    transform-origin: top right;
+  }
+}
+
+@media (max-width: 860px) and (orientation: landscape) and (min-width: 640px) {
+  body {
+    overflow: hidden;
+  }
+
+  .app-shell {
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: auto 1fr;
+  }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) min(360px, 43vw);
+    min-height: 0;
+  }
+
+  .viewport {
+    height: auto;
+    min-height: 0;
+  }
+
+  .panel {
+    overflow-y: auto;
+    min-height: 0;
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+@media (display-mode: standalone) {
+  .app-shell {
+    min-height: 100dvh;
+  }
+
+  .topbar {
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+}

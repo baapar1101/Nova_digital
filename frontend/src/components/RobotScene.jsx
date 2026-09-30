@@ -8,15 +8,28 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 // Both pan and tilt axes pass through this point.
 const HEAD_SPHERE_CENTER = new THREE.Vector3(0, 0.09616257, 0)
 
-// The Rhino glass is a circular plate tilted 15 degrees from the YZ plane.
-// These values are fitted directly from nova-glass.glb.
-const SCREEN_CENTER = new THREE.Vector3(0.01275466, 0.09991729, 0)
-const SCREEN_NORMAL = new THREE.Vector3(
-  0.9659736,
-  0.25864062,
+// Glass measurements extracted from the replacement Rhino GLB.
+// The runtime glass is generated procedurally from these measurements so a
+// damaged binary model can never blank the entire Three.js scene.
+const GLASS_CENTER = new THREE.Vector3(
+  0.0128389929,
+  0.0996022978,
+  0,
+)
+const GLASS_NORMAL = new THREE.Vector3(
+  0.965973621,
+  0.258640606,
   0,
 ).normalize()
-const SCREEN_SURFACE = SCREEN_CENTER.clone().addScaledVector(SCREEN_NORMAL, 0.00125)
+const GLASS_RADIUS = 0.04206002
+const GLASS_THICKNESS = 0.00200001
+
+const SCREEN_CENTER = GLASS_CENTER
+const SCREEN_NORMAL = GLASS_NORMAL
+const SCREEN_SURFACE = SCREEN_CENTER.clone().addScaledVector(
+  SCREEN_NORMAL,
+  GLASS_THICKNESS / 2 + 0.00018,
+)
 const SCREEN_RADIUS = 0.0408
 const SCREEN_QUATERNION = new THREE.Quaternion().setFromUnitVectors(
   new THREE.Vector3(0, 0, 1),
@@ -61,6 +74,38 @@ function mergeRhinoScene(scene, material) {
   mesh.castShadow = true
   mesh.receiveShadow = true
   return mesh
+}
+
+function GlassShell({ material }) {
+  const orientation = useMemo(
+    () =>
+      new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        GLASS_NORMAL,
+      ),
+    [],
+  )
+
+  return (
+    <mesh
+      position={GLASS_CENTER.toArray()}
+      quaternion={orientation.toArray()}
+      castShadow
+      receiveShadow
+    >
+      <cylinderGeometry
+        args={[
+          GLASS_RADIUS,
+          GLASS_RADIUS,
+          GLASS_THICKNESS,
+          96,
+          1,
+          false,
+        ]}
+      />
+      <primitive object={material} attach="material" />
+    </mesh>
+  )
 }
 
 function ScreenDisplay({ animation }) {
@@ -130,7 +175,6 @@ function NovaModel({ state, screenAnimation }) {
   const baseGltf = useGLTF('/models/nova-base.glb')
   const bodyGltf = useGLTF('/models/nova-body.glb')
   const headGltf = useGLTF('/models/nova-head.glb')
-  const glassGltf = useGLTF('/models/nova-glass.glb')
 
   const materials = useMemo(
     () => ({
@@ -176,11 +220,6 @@ function NovaModel({ state, screenAnimation }) {
     () => mergeRhinoScene(headGltf.scene, materials.head),
     [headGltf.scene, materials.head],
   )
-  const glass = useMemo(
-    () => mergeRhinoScene(glassGltf.scene, materials.glass),
-    [glassGltf.scene, materials.glass],
-  )
-
   const pan = useRef()
   const tilt = useRef()
 
@@ -217,7 +256,7 @@ function NovaModel({ state, screenAnimation }) {
             position={HEAD_SPHERE_CENTER.clone().multiplyScalar(-1).toArray()}
           >
             <primitive object={head} />
-            <primitive object={glass} />
+            <GlassShell material={materials.glass} />
             <ScreenDisplay animation={screenAnimation} />
           </group>
         </group>
@@ -306,4 +345,3 @@ export default function RobotScene({ state, screenAnimation = 'blinking' }) {
 useGLTF.preload('/models/nova-base.glb')
 useGLTF.preload('/models/nova-body.glb')
 useGLTF.preload('/models/nova-head.glb')
-useGLTF.preload('/models/nova-glass.glb')

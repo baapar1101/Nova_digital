@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision'
 
 const WASM_ROOT =
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
@@ -53,6 +52,16 @@ function normalizeBox(detection, video) {
 }
 
 async function createDetector() {
+  // Load MediaPipe only when the user explicitly starts face tracking.
+  // Keeping it out of the initial application bundle prevents camera/vision
+  // initialization problems from blanking the entire digital-twin UI.
+  const mediaPipe = await import('@mediapipe/tasks-vision')
+  const { FaceDetector, FilesetResolver } = mediaPipe
+
+  if (!FaceDetector || !FilesetResolver) {
+    throw new Error('MediaPipe face detector is unavailable in this browser.')
+  }
+
   const vision = await FilesetResolver.forVisionTasks(WASM_ROOT)
 
   for (const delegate of ['GPU', 'CPU']) {

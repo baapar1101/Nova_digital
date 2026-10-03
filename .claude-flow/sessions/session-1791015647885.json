@@ -1,0 +1,14 @@
+{
+  "id": "session-1791015647885",
+  "startedAt": "2026-10-03T08:20:47.885Z",
+  "cwd": "D:\\nova\\git\\Nova_digital",
+  "context": {},
+  "metrics": {
+    "edits": 6,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  },
+  "endedAt": "2026-10-03T10:09:17.650Z",
+  "duration": 6509766
+}

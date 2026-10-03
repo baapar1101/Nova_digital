@@ -1,28 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import FaceTrackerPanel from './components/FaceTrackerPanel.jsx'
 import RobotScene from './components/RobotScene.jsx'
 import { useFaceTracker } from './hooks/useFaceTracker.js'
 import { useMovementPlayer } from './hooks/useMovementPlayer.js'
 import { useRobotSocket } from './hooks/useRobotSocket.js'
 import {
-  MOVEMENT_CATEGORIES,
+  ANIMATION_PERFORMANCES,
   MOVEMENTS,
+  getMotionById,
   getMovementById,
 } from './movements.js'
 
 const RAD_TO_DEG = 180 / Math.PI
 const DEG_TO_RAD = Math.PI / 180
-
-const SCREEN_ANIMATIONS = [
-  { id: 'blinking', label: 'Blink' },
-  { id: 'winking', label: 'Wink' },
-  { id: 'giggling', label: 'Giggle' },
-  { id: 'drinking', label: 'Drink' },
-  { id: 'afraiding', label: 'Afraid' },
-  { id: 'tireding', label: 'Tired' },
-  { id: 'loving', label: 'Love' },
-  { id: 'heart-eying', label: 'Heart eyes' },
-]
 
 function format(value, digits = 1) {
   return Number.isFinite(value) ? value.toFixed(digits) : '—'
@@ -95,13 +85,19 @@ export default function App() {
   const { connected, transport, state, lastError, send } = useRobotSocket()
 
   const [screenAnimation, setScreenAnimation] = useState('blinking')
-  const [movementCategory, setMovementCategory] = useState('social')
-  const [selectedMovementId, setSelectedMovementId] = useState('hello')
+  const [screenAnimationRun, setScreenAnimationRun] = useState(0)
+  const [selectedMovementId, setSelectedMovementId] = useState('normal')
   const [playMode, setPlayMode] = useState('once')
+  const [showInternals, setShowInternals] = useState(true)
+
+  const handleFaceChange = useCallback((face) => {
+    setScreenAnimation(face)
+    setScreenAnimationRun((run) => run + 1)
+  }, [])
 
   const movementPlayer = useMovementPlayer({
     send,
-    onFaceChange: setScreenAnimation,
+    onFaceChange: handleFaceChange,
   })
 
   const faceTracker = useFaceTracker({
@@ -111,11 +107,12 @@ export default function App() {
   })
 
   const selectedMovement = getMovementById(selectedMovementId)
-  const categoryMovements = useMemo(
-    () => MOVEMENTS.filter((movement) => movement.category === movementCategory),
-    [movementCategory],
+  const activeMotion = getMotionById(movementPlayer.activeMovementId)
+  const activePerformance = ANIMATION_PERFORMANCES.find(
+    (performance) => performance.id === movementPlayer.activeMovementId,
   )
-
+  const selectedMovementPlaying =
+    movementPlayer.playing && movementPlayer.activeMovementId === selectedMovement.id
   const pan = state.joints.head_pan ?? 0
   const tilt = state.joints.head_tilt ?? 0
   const panTarget = state.joint_targets.head_pan ?? pan
@@ -165,11 +162,24 @@ export default function App() {
 
       <section className="workspace">
         <div className="viewport">
-          <RobotScene state={state} screenAnimation={screenAnimation} />
+          <RobotScene
+            state={state}
+            screenAnimation={screenAnimation}
+            screenAnimationRun={screenAnimationRun}
+            showInternals={showInternals}
+          />
 
           <div className="viewport-hint">
-            Drag to orbit · Scroll to zoom · Use Movement library for choreographed motion
+            Drag to orbit · Scroll to zoom · Choose Normal, Pan, or Tilt
           </div>
+
+          <button
+            className={`internals-toggle ${showInternals ? 'active' : ''}`}
+            onClick={() => setShowInternals((visible) => !visible)}
+          >
+            <span />
+            {showInternals ? 'INTERNALS ON' : 'SHOW INTERNALS'}
+          </button>
 
           <div className="pose-badge">
             <div>
@@ -185,8 +195,8 @@ export default function App() {
 
           {movementPlayer.playing && (
             <div className="movement-live-badge">
-              <span>PLAYING</span>
-              <strong>{selectedMovement.label}</strong>
+              <span>FACE + MOTION</span>
+              <strong>{activeMotion?.label || selectedMovement.label}</strong>
             </div>
           )}
         </div>
@@ -196,36 +206,16 @@ export default function App() {
 
           <section className="panel-section movement-section">
             <div className="section-title">
-              <span>Movement library</span>
-              <small>{MOVEMENTS.length} motions</small>
+              <span>Mechanical movement</span>
+              <small>Rhino matched</small>
             </div>
 
-            <div className="category-tabs">
-              {MOVEMENT_CATEGORIES.map((category) => (
-                <button
-                  key={category.id}
-                  className={movementCategory === category.id ? 'active' : ''}
-                  onClick={() => {
-                    movementPlayer.cancel()
-                    faceTracker.stop()
-                    setMovementCategory(category.id)
-                    const first = MOVEMENTS.find(
-                      (movement) => movement.category === category.id,
-                    )
-                    if (first) setSelectedMovementId(first.id)
-                  }}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="movement-grid">
-              {categoryMovements.map((movement) => (
+            <div className="mechanical-movement-grid">
+              {MOVEMENTS.map((movement) => (
                 <button
                   key={movement.id}
                   className={
-                    'movement-card ' +
+                    'mechanical-movement-card ' +
                     (selectedMovementId === movement.id ? 'active' : '')
                   }
                   onClick={() => {
@@ -234,11 +224,21 @@ export default function App() {
                     setSelectedMovementId(movement.id)
                   }}
                 >
+                  <span
+                    className={`movement-axis-icon ${movement.axis}`}
+                    aria-hidden="true"
+                  >
+                    {movement.symbol}
+                  </span>
                   <strong>{movement.label}</strong>
-                  <span>{movement.description}</span>
+                  <small>{movement.range}</small>
                 </button>
               ))}
             </div>
+
+            <p className="mechanical-movement-description">
+              {selectedMovement.description}
+            </p>
 
             <div className="movement-player">
               <div className="movement-selected">
@@ -275,7 +275,9 @@ export default function App() {
                     movementPlayer.play(selectedMovement, playMode)
                   }}
                 >
-                  {movementPlayer.playing ? 'Restart movement' : 'Play movement'}
+                  {selectedMovementPlaying
+                    ? `Restart ${selectedMovement.label}`
+                    : selectedMovement.action}
                 </button>
                 <button
                   className="stop-button"
@@ -289,33 +291,86 @@ export default function App() {
               <div className="movement-progress" aria-hidden="true">
                 <span
                   style={{
-                    width: `${Math.round(movementPlayer.progress * 100)}%`,
+                    width: `${Math.round(
+                      selectedMovementPlaying ? movementPlayer.progress * 100 : 0,
+                    )}%`,
                   }}
                 />
               </div>
-              <p className="playback-note">Once is selected by default.</p>
+              <p className="playback-note">
+                Pan and tilt drive the matching internal gears in real time.
+              </p>
             </div>
           </section>
 
           <section className="panel-section">
             <div className="section-title">
-              <span>Screen animation</span>
-              <small>{screenAnimation}</small>
+              <span>Expression performances</span>
+              <small>face + motion sync</small>
             </div>
 
+            <p className="animation-intro">
+              Select an expression to play its face and head choreography together.
+            </p>
+
             <div className="animation-grid">
-              {SCREEN_ANIMATIONS.map((animation) => (
+              {ANIMATION_PERFORMANCES.map((animation) => (
                 <button
                   key={animation.id}
                   className={
                     'animation-button ' +
-                    (screenAnimation === animation.id ? 'active' : '')
+                    (screenAnimation === animation.face ? 'active ' : '') +
+                    (movementPlayer.playing &&
+                    movementPlayer.activeMovementId === animation.id
+                      ? 'performing'
+                      : '')
                   }
-                  onClick={() => setScreenAnimation(animation.id)}
+                  onClick={() => {
+                    faceTracker.stop()
+                    movementPlayer.play(animation, 'once')
+                  }}
+                  aria-label={`Play ${animation.label}: ${animation.motion}`}
                 >
-                  {animation.label}
+                  <span className="animation-symbol" aria-hidden="true">
+                    {animation.symbol}
+                  </span>
+                  <span>
+                    <strong>{animation.label}</strong>
+                    <small>{animation.motion}</small>
+                  </span>
                 </button>
               ))}
+            </div>
+
+            <div
+              className={
+                'performance-status ' +
+                (activePerformance && movementPlayer.playing ? 'active' : '')
+              }
+            >
+              <div>
+                <span>
+                  {activePerformance && movementPlayer.playing
+                    ? `Playing ${activePerformance.label}`
+                    : 'Ready for performance'}
+                </span>
+                <small>
+                  {activePerformance && movementPlayer.playing
+                    ? activePerformance.motion
+                    : 'Select any expression above'}
+                </small>
+              </div>
+              <div className="performance-progress" aria-hidden="true">
+                <span
+                  style={{
+                    width: `${Math.round(
+                      activePerformance && movementPlayer.playing
+                        ? movementPlayer.progress * 100
+                        : 0,
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
           </section>
 

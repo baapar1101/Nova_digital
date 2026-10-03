@@ -4,6 +4,7 @@ import LoadingOverlay from './components/LoadingOverlay.jsx'
 import InstallPwa from './components/InstallPwa.jsx'
 import RobotScene from './components/RobotScene.jsx'
 import { useFaceTracker } from './hooks/useFaceTracker.js'
+import { useMouseTracker } from './hooks/useMouseTracker.js'
 import { useMovementPlayer } from './hooks/useMovementPlayer.js'
 import { useRobotSocket } from './hooks/useRobotSocket.js'
 import {
@@ -102,10 +103,15 @@ export default function App() {
     onFaceChange: handleFaceChange,
   })
 
+  const mouseTracker = useMouseTracker({ send })
+
   const faceTracker = useFaceTracker({
     send,
     state,
-    onBeforeStart: movementPlayer.cancel,
+    onBeforeStart: () => {
+      movementPlayer.cancel()
+      mouseTracker.stop()
+    },
   })
 
   const selectedMovement = getMovementById(selectedMovementId)
@@ -125,6 +131,7 @@ export default function App() {
   const stopAutomaticControl = () => {
     movementPlayer.cancel()
     faceTracker.stop()
+    mouseTracker.stop()
   }
 
   const setJointDegrees = (joint, degrees) => {
@@ -169,7 +176,10 @@ export default function App() {
       </header>
 
       <section className="workspace">
-        <div className="viewport">
+        <div
+          className={`viewport ${mouseTracker.enabled ? 'mouse-following' : ''}`}
+          onPointerMove={mouseTracker.onPointerMove}
+        >
           <RobotScene
             state={state}
             screenAnimation={screenAnimation}
@@ -177,9 +187,36 @@ export default function App() {
             showInternals={showInternals}
           />
 
-          <div className="viewport-hint">
-            Drag to orbit · Scroll to zoom · Choose Normal, Pan, or Tilt
+          <div className="mouse-target" aria-hidden="true">
+            <i />
           </div>
+
+          <div className="viewport-hint">
+            {mouseTracker.enabled
+              ? 'Move your cursor across this view · Nova follows the target'
+              : 'Drag to orbit · Scroll to zoom · Choose Normal, Pan, or Tilt'}
+          </div>
+
+          <button
+            className={`mouse-follow-toggle ${mouseTracker.enabled ? 'active' : ''}`}
+            aria-pressed={mouseTracker.enabled}
+            onClick={() => {
+              if (mouseTracker.enabled) {
+                mouseTracker.stop()
+                return
+              }
+
+              movementPlayer.cancel()
+              faceTracker.stop()
+              mouseTracker.start()
+            }}
+          >
+            <span className="mouse-follow-icon" aria-hidden="true">⌁</span>
+            <span>
+              <small>MOUSE</small>
+              <strong>{mouseTracker.enabled ? 'FOLLOWING' : 'FOLLOW'}</strong>
+            </span>
+          </button>
 
           <button
             className={`internals-toggle ${showInternals ? 'active' : ''}`}
@@ -229,6 +266,7 @@ export default function App() {
                   onClick={() => {
                     movementPlayer.cancel()
                     faceTracker.stop()
+                    mouseTracker.stop()
                     setSelectedMovementId(movement.id)
                   }}
                 >
@@ -280,6 +318,7 @@ export default function App() {
                   className="play-button"
                   onClick={() => {
                     faceTracker.stop()
+                    mouseTracker.stop()
                     movementPlayer.play(selectedMovement, playMode)
                   }}
                 >
@@ -335,6 +374,7 @@ export default function App() {
                   }
                   onClick={() => {
                     faceTracker.stop()
+                    mouseTracker.stop()
                     movementPlayer.play(animation, 'once')
                   }}
                   aria-label={`Play ${animation.label}: ${animation.motion}`}

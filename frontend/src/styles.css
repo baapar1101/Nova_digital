@@ -118,6 +118,8 @@ h1 {
 }
 
 .viewport {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -125,6 +127,134 @@ h1 {
 
 .viewport canvas {
   display: block;
+}
+
+.viewport.mouse-following canvas {
+  cursor: crosshair;
+}
+
+.mouse-follow-toggle {
+  position: absolute;
+  right: 20px;
+  bottom: 62px;
+  display: flex;
+  min-height: 42px;
+  padding: 6px 11px 6px 7px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(121, 199, 255, 0.24);
+  border-radius: 10px;
+  color: #8494a3;
+  background: rgba(8, 11, 16, 0.78);
+  backdrop-filter: blur(12px);
+}
+
+.mouse-follow-toggle > span:last-child {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+
+.mouse-follow-toggle small {
+  color: #536576;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.mouse-follow-toggle strong {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.mouse-follow-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgba(121, 199, 255, 0.22);
+  border-radius: 8px;
+  color: #79c7ff;
+  background: rgba(50, 123, 174, 0.12);
+  font-size: 16px;
+}
+
+.mouse-follow-toggle:hover {
+  color: #dceefa;
+  background: rgba(24, 40, 54, 0.86);
+}
+
+.mouse-follow-toggle.active {
+  border-color: rgba(84, 222, 160, 0.62);
+  color: #c9f8df;
+  background: rgba(22, 77, 52, 0.72);
+  box-shadow: 0 0 22px rgba(84, 222, 160, 0.12);
+}
+
+.mouse-follow-toggle.active small,
+.mouse-follow-toggle.active .mouse-follow-icon {
+  color: #79e5ac;
+}
+
+.mouse-follow-toggle.active .mouse-follow-icon {
+  border-color: rgba(84, 222, 160, 0.55);
+  background: rgba(84, 222, 160, 0.12);
+}
+
+.mouse-target {
+  position: absolute;
+  left: var(--mouse-x);
+  top: var(--mouse-y);
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(100, 225, 166, 0.82);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.7);
+  transition:
+    left 55ms linear,
+    top 55ms linear,
+    opacity 150ms ease,
+    transform 150ms ease;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.mouse-target::before,
+.mouse-target::after,
+.mouse-target i {
+  position: absolute;
+  background: rgba(100, 225, 166, 0.88);
+  content: '';
+}
+
+.mouse-target::before {
+  left: 50%;
+  top: -7px;
+  width: 1px;
+  height: 42px;
+}
+
+.mouse-target::after {
+  left: -7px;
+  top: 50%;
+  width: 42px;
+  height: 1px;
+}
+
+.mouse-target i {
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(100, 225, 166, 0.9);
+  transform: translate(-50%, -50%);
+}
+
+.viewport.mouse-following .mouse-target {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .viewport-hint {

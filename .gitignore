@@ -21,3 +21,6 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Local Rhino backup
+3d_model/all_with_details.3dmbak

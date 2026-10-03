@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react'
 import FaceTrackerPanel from './components/FaceTrackerPanel.jsx'
+import LoadingOverlay from './components/LoadingOverlay.jsx'
+import InstallPwa from './components/InstallPwa.jsx'
 import RobotScene from './components/RobotScene.jsx'
 import { useFaceTracker } from './hooks/useFaceTracker.js'
 import { useMovementPlayer } from './hooks/useMovementPlayer.js'
@@ -137,26 +139,32 @@ export default function App() {
   const connectionLabel =
     transport === 'python'
       ? 'PYTHON ONLINE'
-      : transport === 'demo'
-        ? 'WEB DEMO'
-        : 'CONNECTING'
+      : transport === 'connecting'
+        ? 'CONNECTING'
+        : null
 
   return (
-    <main className="app-shell">
+    <>
+      <LoadingOverlay />
+      <main className="app-shell">
       <header className="topbar">
         <div>
           <p className="eyebrow">NOVA ROBOTICS</p>
           <h1>Digital Twin</h1>
         </div>
 
-        <div
-          className={
-            'connection ' +
-            (connected ? 'online' : transport === 'demo' ? 'demo' : 'offline')
-          }
-        >
-          <span />
-          {connectionLabel}
+        <div className="topbar-actions">
+          {connectionLabel && (
+            <div
+              className={
+                'connection ' + (connected ? 'online' : 'offline')
+              }
+            >
+              <span />
+              {connectionLabel}
+            </div>
+          )}
+          <InstallPwa />
         </div>
       </header>
 
@@ -377,7 +385,7 @@ export default function App() {
           <section className="panel-section">
             <div className="section-title">
               <span>Head control</span>
-              <small>{transport === 'python' ? 'Python targets' : 'demo targets'}</small>
+              <small>Targets</small>
             </div>
 
             <JointSlider
@@ -480,6 +488,7 @@ export default function App() {
           {lastError && <p className="error-message">{lastError}</p>}
         </aside>
       </section>
-    </main>
+      </main>
+    </>
   )
 }

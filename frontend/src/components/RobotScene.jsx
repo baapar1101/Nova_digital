@@ -140,9 +140,8 @@ function ScreenDisplay({ animation, run }) {
     <group
       position={SCREEN_SURFACE.toArray()}
       quaternion={SCREEN_QUATERNION.toArray()}
-      renderOrder={20}
     >
-      <mesh rotation={[0, 0, SCREEN_ROLL]}>
+      <mesh rotation={[0, 0, SCREEN_ROLL]} renderOrder={20}>
         <circleGeometry args={[SCREEN_RADIUS, 96]} />
         <meshBasicMaterial
           map={media.texture}

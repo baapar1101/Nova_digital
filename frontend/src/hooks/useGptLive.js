@@ -103,7 +103,9 @@ export function useGptLive() {
           setUserTranscript((current) =>
             trimTranscript(current + (event.delta || '')),
           )
-          if (status !== 'speaking') setStatus('listening')
+          setStatus((current) =>
+            current === 'speaking' ? current : 'listening',
+          )
           break
 
         case 'session.output_transcript.delta':
@@ -139,7 +141,7 @@ export function useGptLive() {
           break
       }
     },
-    [cleanup, markSpeaking, status],
+    [cleanup, markSpeaking],
   )
 
   const start = useCallback(async () => {

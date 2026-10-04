@@ -1768,3 +1768,284 @@ input[type='range'] {
     padding-top: max(10px, env(safe-area-inset-top));
   }
 }
+
+
+/* GPT-Live voice */
+.gpt-live-section {
+  padding-top: 0;
+}
+
+.gpt-live-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 10px;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(121, 199, 255, 0.13);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 15% 50%, rgba(91, 170, 224, 0.12), transparent 34%),
+    #0d131a;
+}
+
+.gpt-live-card.active {
+  border-color: rgba(91, 222, 153, 0.27);
+  background:
+    radial-gradient(circle at 15% 50%, rgba(69, 203, 131, 0.14), transparent 36%),
+    #0c1515;
+}
+
+.gpt-live-orb {
+  position: relative;
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgba(121, 199, 255, 0.18);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(121, 199, 255, 0.2), rgba(20, 40, 55, 0.1) 55%, transparent 70%);
+}
+
+.gpt-live-orb i {
+  position: absolute;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 99px;
+  background: #78c7ff;
+  opacity: 0.78;
+}
+
+.gpt-live-orb i:nth-child(1) {
+  left: 16px;
+  height: 11px;
+}
+
+.gpt-live-orb i:nth-child(2) {
+  left: 23px;
+  height: 20px;
+}
+
+.gpt-live-orb i:nth-child(3) {
+  left: 30px;
+  height: 15px;
+}
+
+.gpt-live-orb i:nth-child(4) {
+  left: 37px;
+  height: 8px;
+}
+
+.gpt-live-card.active .gpt-live-orb i {
+  background: #67dfa0;
+  animation: gpt-live-wave 760ms ease-in-out infinite alternate;
+}
+
+.gpt-live-card.active .gpt-live-orb i:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.gpt-live-card.active .gpt-live-orb i:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+.gpt-live-card.active .gpt-live-orb i:nth-child(4) {
+  animation-delay: 360ms;
+}
+
+.gpt-live-state {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.gpt-live-state small {
+  color: #5f7182;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.gpt-live-state strong {
+  color: #e8f1f8;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.gpt-live-state span {
+  overflow: hidden;
+  color: #71808f;
+  font-size: 9px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gpt-live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #56616c;
+}
+
+.gpt-live-dot.connecting,
+.gpt-live-dot.closing {
+  background: #e1b76b;
+  box-shadow: 0 0 12px rgba(225, 183, 107, 0.45);
+}
+
+.gpt-live-dot.listening {
+  background: #62d999;
+  box-shadow: 0 0 14px rgba(98, 217, 153, 0.5);
+}
+
+.gpt-live-dot.speaking {
+  background: #79c7ff;
+  box-shadow: 0 0 15px rgba(121, 199, 255, 0.62);
+}
+
+.gpt-live-dot.error {
+  background: #ff7676;
+  box-shadow: 0 0 12px rgba(255, 118, 118, 0.44);
+}
+
+.gpt-live-audio {
+  display: none;
+}
+
+.gpt-live-transcript {
+  display: grid;
+  gap: 8px;
+  max-height: 160px;
+  margin-top: 10px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  background: rgba(5, 8, 12, 0.45);
+}
+
+.gpt-live-transcript > div {
+  display: grid;
+  gap: 3px;
+}
+
+.gpt-live-transcript small {
+  color: #596878;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.gpt-live-transcript .nova small {
+  color: #67dca0;
+}
+
+.gpt-live-transcript p {
+  margin: 0;
+  color: #b5c0ca;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.gpt-live-actions {
+  display: grid;
+  grid-template-columns: 1fr 84px;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.gpt-live-actions:has(.gpt-live-start) {
+  grid-template-columns: 1fr;
+}
+
+.gpt-live-start,
+.gpt-live-mute,
+.gpt-live-end {
+  min-height: 42px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.gpt-live-start {
+  border: 1px solid rgba(121, 199, 255, 0.42);
+  color: #e5f5ff;
+  background: rgba(56, 139, 197, 0.17);
+}
+
+.gpt-live-start:hover {
+  background: rgba(56, 139, 197, 0.26);
+}
+
+.gpt-live-mute {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c4cfda;
+  background: #121922;
+}
+
+.gpt-live-mute.active {
+  border-color: rgba(225, 183, 107, 0.38);
+  color: #f0d49a;
+  background: rgba(110, 79, 30, 0.16);
+}
+
+.gpt-live-end {
+  border: 1px solid rgba(255, 118, 118, 0.32);
+  color: #ffc3c3;
+  background: rgba(139, 37, 37, 0.15);
+}
+
+.gpt-live-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 7px;
+  color: #4f5f6e;
+  font-size: 8px;
+}
+
+.gpt-live-meta span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gpt-live-error {
+  margin: 8px 0 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(255, 118, 118, 0.18);
+  border-radius: 7px;
+  color: #ffaaaa;
+  background: rgba(101, 25, 25, 0.13);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+@keyframes gpt-live-wave {
+  from {
+    transform: scaleY(0.58);
+    opacity: 0.5;
+  }
+
+  to {
+    transform: scaleY(1.18);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 860px) {
+  .gpt-live-start,
+  .gpt-live-mute,
+  .gpt-live-end {
+    min-height: 46px;
+  }
+
+  .gpt-live-transcript {
+    max-height: 210px;
+  }
+}

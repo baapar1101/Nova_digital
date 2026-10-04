@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react'
 import FaceTrackerPanel from './components/FaceTrackerPanel.jsx'
+import GptLivePanel from './components/GptLivePanel.jsx'
 import LoadingOverlay from './components/LoadingOverlay.jsx'
 import InstallPwa from './components/InstallPwa.jsx'
 import RobotScene from './components/RobotScene.jsx'
 import { useFaceTracker } from './hooks/useFaceTracker.js'
+import { useGptLive } from './hooks/useGptLive.js'
 import { useMouseTracker } from './hooks/useMouseTracker.js'
 import { useMovementPlayer } from './hooks/useMovementPlayer.js'
 import { useRobotSocket } from './hooks/useRobotSocket.js'
@@ -104,6 +106,7 @@ export default function App() {
   })
 
   const mouseTracker = useMouseTracker({ send })
+  const gptLive = useGptLive()
 
   const faceTracker = useFaceTracker({
     send,
@@ -247,6 +250,7 @@ export default function App() {
         </div>
 
         <aside className="panel">
+          <GptLivePanel live={gptLive} />
           <FaceTrackerPanel tracker={faceTracker} />
 
           <section className="panel-section movement-section">
